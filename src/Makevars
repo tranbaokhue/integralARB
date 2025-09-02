@@ -1,11 +1,8 @@
-PKG_CPPFLAGS = -I/opt/homebrew/include -I./include
+PKG_CPPFLAGS = -I/opt/homebrew/include -I./include -DHAVE_FLINT
 PKG_LIBS = -L/opt/homebrew/lib -lflint -lgmp -lmpfr -lm
 
 # C source files to compile
 OBJECTS = init.o r_interface.o integration_engine.o
 
-# Compiler flags
-PKG_CFLAGS = -Wall -Wextra -std=c99
-
-# Additional include paths for FLINT headers
-PKG_CPPFLAGS += -DHAVE_FLINT
+# Use C11 standard to avoid warnings about C11 extensions
+PKG_CFLAGS = -std=c11 -Wno-unused-parameter

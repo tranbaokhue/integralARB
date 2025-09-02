@@ -27,14 +27,30 @@ SEXP integrate_rigorous_c(SEXP f, SEXP a, SEXP b, SEXP precision,
     .verbose = verbose_val
   };
 
-  // For now, create a simple test integrand (we'll expand this later)
-  integrand_t integrand = {
-    .type = INTEGRAND_EXPRESSION,
-    .data = NULL,
-    .r_function = R_NilValue
-  };
+  // Set up integrand based on input type
+  integrand_t integrand = {0};
 
-  // Perform integration (placeholder for now)
+  if (TYPEOF(f) == CLOSXP || TYPEOF(f) == BUILTINSXP || TYPEOF(f) == SPECIALSXP) {
+    // R function
+    integrand.type = INTEGRAND_R_FUNCTION;
+    integrand.r_function = f;
+  } else if (TYPEOF(f) == STRSXP) {
+    // String - for now treat as builtin function name
+    const char* fname = CHAR(STRING_ELT(f, 0));
+    if (strcmp(fname, "arctangent") == 0 || strcmp(fname, "builtin") == 0) {
+      integrand.type = INTEGRAND_BUILTIN;
+    } else {
+      // For other strings, we'd need expression parsing (future enhancement)
+      integrand.type = INTEGRAND_R_FUNCTION;
+      // Create a function that parses the expression (simplified for now)
+      integrand.r_function = f; // This will need proper expression parsing
+    }
+  } else {
+    // Default to builtin for testing
+    integrand.type = INTEGRAND_BUILTIN;
+  }
+
+  // Perform integration
   integration_result_t result = perform_integration(&integrand, a_val, b_val, &params);
 
   // Convert result to R list
@@ -70,7 +86,7 @@ SEXP integrate_rigorous_c(SEXP f, SEXP a, SEXP b, SEXP precision,
 }
 
 // Test function to verify FLINT is working
-SEXP test_flint_basic() {
+SEXP test_flint_basic(void) {
   // Simple test: compute π using ARB
   arb_t pi;
   arb_init(pi);

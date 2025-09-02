@@ -2,7 +2,7 @@ Package: integralARB
 Title: Rigorous Numerical Integration using ARB Library
 Version: 0.1.0
 Authors@R: c(
-    person("Bao Khue","Tran", "bao_khue.tran@unsw.edu.au", role = c("aut", "cre")),
+    person("Bao Khue", "Tran", email = "khuebtran03@gmail.com", role = c("cre", "aut")),
     person("FLINT Contributors", role = "cph", comment = "Uses FLINT library"))
 Description: Performs rigorous numerical integration using ball arithmetic with 
     mathematically guaranteed error bounds. Handles pathological functions that 
@@ -10,7 +10,7 @@ Description: Performs rigorous numerical integration using ball arithmetic with
 License: LGPL-3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Depends: R (>= 3.5.0)
 Imports: methods
 Suggests: testthat (>= 3.0.0), knitr, rmarkdown
