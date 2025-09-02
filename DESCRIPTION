@@ -2,7 +2,7 @@ Package: integralARB
 Title: Rigorous Numerical Integration using ARB Library
 Version: 0.1.0
 Authors@R: c(
-    person("Bao Khue Tran", "bao_khue.tran@unsw.edu.au", role = c("aut", "cre")),
+    person("Bao Khue","Tran", "bao_khue.tran@unsw.edu.au", role = c("aut", "cre")),
     person("FLINT Contributors", role = "cph", comment = "Uses FLINT library"))
 Description: Performs rigorous numerical integration using ball arithmetic with 
     mathematically guaranteed error bounds. Handles pathological functions that 

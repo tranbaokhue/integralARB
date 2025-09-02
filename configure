@@ -1,0 +1,92 @@
+#!/bin/bash
+echo "Configuring integralARB package..."
+echo "================================="
+
+# Function to check for library and headers
+check_library() {
+    local lib_name=$1
+    local header_file=$2
+    local found=0
+
+    echo "Checking for $lib_name..."
+
+    # Check common installation paths
+    for prefix in /opt/homebrew /usr/local /usr; do
+        if [ -f "$prefix/include/$header_file" ]; then
+            echo "  Headers found at: $prefix/include/"
+            if [ -f "$prefix/lib/lib${lib_name}.dylib" ] || [ -f "$prefix/lib/lib${lib_name}.so" ] || [ -f "$prefix/lib/lib${lib_name}.a" ]; then
+                echo "  Library found at: $prefix/lib/"
+                FOUND_PREFIX="$prefix"
+                found=1
+                break
+            fi
+        fi
+    done
+
+    if [ $found -eq 0 ]; then
+        echo "  ❌ $lib_name not found"
+        return 1
+    else
+        echo "  ✅ $lib_name found"
+        return 0
+    fi
+}
+
+# Check required libraries
+FLINT_OK=0
+GMP_OK=0
+MPFR_OK=0
+PKG_CFLAGS=""
+PKG_LIBS=""
+
+if check_library "flint" "flint/flint.h"; then
+    FLINT_OK=1
+    PKG_CFLAGS="-I${FOUND_PREFIX}/include"
+    PKG_LIBS="-L${FOUND_PREFIX}/lib -lflint"
+fi
+
+if check_library "gmp" "gmp.h"; then
+    GMP_OK=1
+    PKG_LIBS="${PKG_LIBS} -lgmp"
+fi
+
+if check_library "mpfr" "mpfr.h"; then
+    MPFR_OK=1
+    PKG_LIBS="${PKG_LIBS} -lmpfr"
+fi
+
+# Add math library
+PKG_LIBS="${PKG_LIBS} -lm"
+
+echo ""
+
+# Report results and provide installation instructions
+if [ $FLINT_OK -eq 1 ] && [ $GMP_OK -eq 1 ] && [ $MPFR_OK -eq 1 ]; then
+    echo "✅ All required libraries found!"
+    echo "Using CFLAGS: $PKG_CFLAGS"
+    echo "Using LIBS: $PKG_LIBS"
+
+    # Generate Makevars
+    sed -e "s|@PKG_CFLAGS@|$PKG_CFLAGS|" \
+        -e "s|@PKG_LIBS@|$PKG_LIBS|" \
+        src/Makevars.in > src/Makevars
+
+    echo "Configuration successful!"
+
+else
+    echo "❌ Missing required libraries!"
+    echo ""
+    echo "To install the required dependencies:"
+    echo ""
+    echo "On macOS (using Homebrew):"
+    echo "  brew install flint gmp mpfr"
+    echo ""
+    echo "On Ubuntu/Debian:"
+    echo "  sudo apt-get install libflint-dev libgmp-dev libmpfr-dev"
+    echo ""
+    echo "On CentOS/RHEL/Fedora:"
+    echo "  sudo yum install flint-devel gmp-devel mpfr-devel"
+    echo ""
+    echo "Please install the missing libraries and try again."
+    exit 1
+fi

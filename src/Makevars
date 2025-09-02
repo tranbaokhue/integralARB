@@ -1,5 +1,5 @@
-PKG_CPPFLAGS = @PKG_CFLAGS@ -I./include
-PKG_LIBS = @PKG_LIBS@
+PKG_CPPFLAGS = -I/opt/homebrew/include -I./include
+PKG_LIBS = -L/opt/homebrew/lib -lflint -lgmp -lmpfr -lm
 
 # C source files to compile
 OBJECTS = init.o r_interface.o integration_engine.o
