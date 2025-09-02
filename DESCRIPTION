@@ -1,18 +1,20 @@
 Package: integralARB
-Type: Package
-Title: What the Package Does (Title Case)
+Title: Rigorous Numerical Integration using ARB Library
 Version: 0.1.0
 Authors@R: c(
-    person(
-      "Jane", "Doe",
-      email = "jane@example.com",
-      role = c("aut", "cre")
-    )
-  )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
-License: What license is it under?
+    person("Bao Khue Tran", "bao_khue.tran@unsw.edu.au", role = c("aut", "cre")),
+    person("FLINT Contributors", role = "cph", comment = "Uses FLINT library"))
+Description: Performs rigorous numerical integration using ball arithmetic with 
+    mathematically guaranteed error bounds. Handles pathological functions that 
+    break standard quadrature methods. Based on the FLINT/ARB library.
+License: LGPL-3
 Encoding: UTF-8
-LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Depends: R (>= 3.5.0)
+Imports: methods
+Suggests: testthat (>= 3.0.0), knitr, rmarkdown
+VignetteBuilder: knitr
 URL: https://github.com/tranbaokhue/integralARB
 BugReports: https://github.com/tranbaokhue/integralARB/issues
+SystemRequirements: FLINT library (>= 3.0), GMP library, MPFR library
