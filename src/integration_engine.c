@@ -77,27 +77,38 @@ typedef struct {
   integration_params_t* params;
 } r_function_data_t;
 
-/* R integrand wrapper:
- - calls the R function with the midpoint of the REAL part of z as a double.
- - expects a numeric scalar back (converted to double).
- - sets res accordingly (real arb with imag = 0).
- */
-int r_function_integrand(acb_ptr res, const acb_t z, void* param, slong order, slong prec) {
+/* Replace your existing r_function_integrand with this version. */
+int r_function_integrand(acb_ptr res, const acb_t z, void* param, slong order, slong prec)
+{
   r_function_data_t *rdata = (r_function_data_t*) param;
+
+  /* Defensive checks */
   if (!rdata || rdata->r_function == R_NilValue) {
     acb_indeterminate(res);
     return 1;
   }
 
-  if (order > 1) {             /* derivatives not supported here */
-acb_indeterminate(res);
+  /* IMPORTANT: Arb calls with order==1 to check holomorphicity / bound error.
+   If we cannot evaluate f on a complex neighbourhood (which R functions cannot),
+   we must return a non-finite value so Arb knows the integrand is not holomorphic
+   on the neighbourhood. Returning a real-only value here breaks the algorithm. */
+  if (order != 0) {
+    acb_indeterminate(res);
     return 1;
   }
 
-  /* Convert midpoint of real(z) -> double (user agreed double inputs for now) */
+  /* If the integrand was requested at a point with nonzero imaginary part (or
+   an imaginary ball that doesn't include 0), we cannot evaluate it reliably
+   with the real-only R function — signal indeterminate. */
+  if (!arb_contains_zero(acb_imagref(z))) {
+    acb_indeterminate(res);
+    return 1;
+  }
+
+  /* Extract real midpoint (double) for pointwise evaluation */
   double x = arf_get_d(arb_midref(acb_realref(z)), ARF_RND_NEAR);
 
-  /* Call R: f(x) */
+  /* Call the R function f(x) (same pattern you had before) */
   SEXP call = PROTECT(lang2(rdata->r_function, ScalarReal(x)));
   int r_error = 0;
   SEXP rval = R_tryEval(call, rdata->r_env, &r_error);
@@ -108,15 +119,22 @@ acb_indeterminate(res);
     return 1;
   }
 
-  /* Coerce to real vector and extract first element (protect the coerced SEXP) */
   SEXP rnum = PROTECT(coerceVector(rval, REALSXP));
   double y = REAL(rnum)[0];
   UNPROTECT(1);
 
-  /* Put the result into an arb and set res = that real arb */
+  /* Convert the result to an arb and *add a small rounding radius*
+   to reflect that y is a double (not exact arbitrary precision).
+   Use arb_add_error_2exp_si to add 2^-52 (conservative). */
   arb_t tmp;
   arb_init(tmp);
   arb_set_d(tmp, y);
+
+  /* Add a tiny absolute error to reflect floating-point/evaluation error.
+   2^-52 ≈ 4.4e-16, which is conservative for double evaluations in typical ranges.
+   This prevents pretending R returned an exact arbitrary-precision value. */
+  arb_add_error_2exp_si(tmp, -52);
+
   acb_set_arb(res, tmp);
   arb_clear(tmp);
 
