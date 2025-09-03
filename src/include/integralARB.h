@@ -16,8 +16,11 @@ typedef struct {
   double rel_error;       // Relative error estimate
   int evaluations;        // Number of function evaluations
   int subdivisions;       // Number of subdivisions used
-  int status;            // Success/failure status (0 = success)
-  char message[256];     // Status message
+  int status;             // Success/failure status (0 = success)
+  char message[256];      // Status message
+  // High-precision strings (decimal) to preserve precision when returning to R
+  char *value_str;   // Midpoint value as string (precision ~= params->precision)
+  char *error_str;   // Error bound (radius/ubound) as string
 } integration_result_t;
 
 // Integration parameters

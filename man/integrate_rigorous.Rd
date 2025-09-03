@@ -8,7 +8,7 @@ integrate_rigorous(
   f,
   a,
   b,
-  precision = 64L,
+  precision = 128L,
   abs_tol = NULL,
   rel_tol = NULL,
   max_eval = 100000L,
@@ -64,10 +64,10 @@ mathematically guaranteed error bounds rather than heuristic estimates.
 }
 \examples{
 \dontrun{
-# Example 1: Built-in arctangent function ∫[0,1] 1/(1+x²) dx = π/4
+# Example 1: Built-in arctangent function ∫[0,1] arctan(x) dx
 result1 <- integrate_rigorous("arctangent", 0, 1)
 print(result1)
-# Expected: value ≈ 0.785398 (π/4)
+# Expected: value = 0.438824573117475654907044785090787437011542282663648828...
 
 # Example 2: Sine function ∫[0,π] sin(x) dx = 2
 result2 <- integrate_rigorous(sin, 0, pi)
@@ -78,11 +78,7 @@ print(result2)
 gaussian_func <- function(x) exp(-x^2)
 result3 <- integrate_rigorous(gaussian_func, 0, 2)
 print(result3)
-# Expected: value ≈ 0.8821 (close to √π/2 ≈ 0.8862 for [0,∞])
-
-# Example with higher precision
-result_hp <- integrate_rigorous(sin, 0, pi, precision = 128)
-print(result_hp)
+# Expected: value ≈ 0.88208139076242167996748103591405403722405...
 }
 
 }

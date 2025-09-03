@@ -37,10 +37,10 @@
 #'
 #' @examples
 #' \dontrun{
-#' # Example 1: Built-in arctangent function ∫[0,1] 1/(1+x²) dx = π/4
+#' # Example 1: Built-in arctangent function ∫[0,1] arctan(x) dx
 #' result1 <- integrate_rigorous("arctangent", 0, 1)
 #' print(result1)
-#' # Expected: value ≈ 0.785398 (π/4)
+#' # Expected: value = 0.438824573117475654907044785090787437011542282663648828...
 #'
 #' # Example 2: Sine function ∫[0,π] sin(x) dx = 2
 #' result2 <- integrate_rigorous(sin, 0, pi)
@@ -51,11 +51,7 @@
 #' gaussian_func <- function(x) exp(-x^2)
 #' result3 <- integrate_rigorous(gaussian_func, 0, 2)
 #' print(result3)
-#' # Expected: value ≈ 0.8821 (close to √π/2 ≈ 0.8862 for [0,∞])
-#'
-#' # Example with higher precision
-#' result_hp <- integrate_rigorous(sin, 0, pi, precision = 128)
-#' print(result_hp)
+#' # Expected: value ≈ 0.88208139076242167996748103591405403722405...
 #' }
 #'
 #' @references
@@ -63,7 +59,6 @@
 #' Interval Arithmetic. IEEE Transactions on Computers.
 #'
 #' @seealso [integrate()], [print.rigorous_result()]
-#' @useDynLib integralARB, .registration=TRUE
 #' @export
 integrate_rigorous <- function(f, a, b, precision = 128L,
                                abs_tol = NULL, rel_tol = NULL,
@@ -111,8 +106,15 @@ print.rigorous_result <- function(x, digits = 10, ...) {
   cat("Precision:", x$precision, "bits\n\n")
 
   if (x$status == 0) {
-    cat("Value:     ", format(x$value, digits = digits), "\n")
-    cat("Error:     ±", format(x$error_bound, digits = 3), "\n")
+    # Use high-precision string if available, otherwise fall back to double
+    if (!is.null(x$value_str) && nchar(x$value_str) > 0) {
+      cat("Value:     ", x$value_str, "\n")
+      cat("Error:     ±", x$error_str, "\n")
+    } else {
+      cat("Value:     ", format(x$value, digits = digits), "\n")
+      cat("Error:     ±", format(x$error_bound, digits = 3), "\n")
+    }
+
     if (x$rel_error < Inf) {
       cat("Rel. Err:  ", format(x$rel_error, digits = 3), "\n")
     }

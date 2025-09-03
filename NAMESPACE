@@ -3,4 +3,3 @@
 S3method(print,rigorous_result)
 export(integrate_rigorous)
 export(test_flint)
-useDynLib(integralARB, .registration=TRUE)

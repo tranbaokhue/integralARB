@@ -1,5 +1,6 @@
 #include <R.h>
 #include <Rinternals.h>
+#include <string.h>
 #include "include/integralARB.h"
 
 // Main integration function called from R
@@ -54,8 +55,8 @@ SEXP integrate_rigorous_c(SEXP f, SEXP a, SEXP b, SEXP precision,
   integration_result_t result = perform_integration(&integrand, a_val, b_val, &params);
 
   // Convert result to R list
-  SEXP r_result = PROTECT(allocVector(VECSXP, 8));
-  SEXP names = PROTECT(allocVector(STRSXP, 8));
+  SEXP r_result = PROTECT(allocVector(VECSXP, 10));
+  SEXP names = PROTECT(allocVector(STRSXP, 10));
 
   SET_STRING_ELT(names, 0, mkChar("value"));
   SET_STRING_ELT(names, 1, mkChar("error_bound"));
@@ -65,6 +66,8 @@ SEXP integrate_rigorous_c(SEXP f, SEXP a, SEXP b, SEXP precision,
   SET_STRING_ELT(names, 5, mkChar("subdivisions"));
   SET_STRING_ELT(names, 6, mkChar("status"));
   SET_STRING_ELT(names, 7, mkChar("message"));
+  SET_STRING_ELT(names, 8, mkChar("value_str"));
+  SET_STRING_ELT(names, 9, mkChar("error_str"));
 
   SET_VECTOR_ELT(r_result, 0, ScalarReal(result.value));
   SET_VECTOR_ELT(r_result, 1, ScalarReal(result.error_bound));
@@ -74,6 +77,8 @@ SEXP integrate_rigorous_c(SEXP f, SEXP a, SEXP b, SEXP precision,
   SET_VECTOR_ELT(r_result, 5, ScalarInteger(result.subdivisions));
   SET_VECTOR_ELT(r_result, 6, ScalarInteger(result.status));
   SET_VECTOR_ELT(r_result, 7, mkString(result.message));
+  SET_VECTOR_ELT(r_result, 8, mkString(result.value_str));
+  SET_VECTOR_ELT(r_result, 9, mkString(result.error_str));
 
   setAttrib(r_result, R_NamesSymbol, names);
 
