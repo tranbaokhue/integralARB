@@ -37,10 +37,10 @@
 #'
 #' @examples
 #' \dontrun{
-#' # Example 1: Built-in arctangent function ∫[0,1] arctan(x) dx
+#' # Example 1: Built-in arctangent function ∫[0,1] 1/(1+x^2) dx = π/4
 #' result1 <- integrate_rigorous("arctangent", 0, 1)
 #' print(result1)
-#' # Expected: value = 0.438824573117475654907044785090787437011542282663648828...
+#' # Expected: value = 0.785398163397448309615660845819875721048822
 #'
 #' # Example 2: Sine function ∫[0,π] sin(x) dx = 2
 #' result2 <- integrate_rigorous(sin, 0, pi)
