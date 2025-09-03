@@ -2,83 +2,154 @@
 % Please edit documentation in R/integrate_rigorous.R
 \name{integrate_rigorous}
 \alias{integrate_rigorous}
-\title{Rigorous Numerical Integration with Guaranteed Error Bounds}
+\title{Rigorous Numerical Integration with Built-in Analytical Functions}
 \usage{
 integrate_rigorous(
-  f,
+  func_name,
   a,
   b,
   precision = 128L,
   abs_tol = NULL,
   rel_tol = NULL,
-  max_eval = 100000L,
-  max_depth = 50L,
-  verbose = FALSE
+  max_eval = 1000000L,
+  max_depth = 100L,
+  verbose = FALSE,
+  params = NULL
 )
 }
 \arguments{
-\item{f}{An R function, or the string "arctangent" for built-in test function}
+\item{func_name}{Name of built-in function (see details for available functions)}
 
 \item{a}{Lower limit of integration (numeric)}
 
 \item{b}{Upper limit of integration (numeric)}
 
-\item{precision}{Working precision in bits (default: 64)}
+\item{precision}{Working precision in bits (default: 128, range: 64-1024)}
 
-\item{abs_tol}{Absolute error tolerance (default: 2^(-precision))}
+\item{abs_tol}{Absolute error tolerance (default: 2^(-precision-10))}
 
-\item{rel_tol}{Relative error tolerance (default: 2^(-precision))}
+\item{rel_tol}{Relative error tolerance (default: 2^(-precision-10))}
 
-\item{max_eval}{Maximum number of function evaluations (default: 100000)}
+\item{max_eval}{Maximum number of function evaluations (default: 1000000)}
 
-\item{max_depth}{Maximum subdivision depth (default: 50)}
+\item{max_depth}{Maximum subdivision depth (default: 100)}
 
 \item{verbose}{Print integration progress (default: FALSE)}
+
+\item{params}{Additional parameters for parameterized functions (list)}
 }
 \value{
 An object of class \code{rigorous_result} containing:
 \itemize{
-\item \code{value} - The computed integral value
-\item \code{error_bound} - Rigorous error bound
-\item \code{abs_error} - Absolute error estimate
-\item \code{rel_error} - Relative error estimate
+\item \code{value} - Double approximation of integral value
+\item \code{value_str} - High-precision string representation
+\item \code{error_bound} - Rigorous error bound (double)
+\item \code{error_str} - High-precision error bound (string)
 \item \code{evaluations} - Number of function evaluations performed
-\item \code{subdivisions} - Number of interval subdivisions
 \item \code{status} - Integration status (0 = success)
-\item \code{message} - Status message
+\item \code{precision} - Working precision used
 }
 }
 \description{
 Computes definite integrals using ball arithmetic with mathematically
-rigorous error bounds. Unlike heuristic methods, this guarantees that
-the true integral value lies within the returned interval.
+rigorous error bounds. Only supports built-in analytical functions that
+can provide complex holomorphic extensions for guaranteed accuracy.
 }
 \details{
-This function uses adaptive Gauss-Legendre quadrature with rigorous
-error bounds based on complex analysis. It automatically detects
-discontinuities and singularities, ensuring reliable results even
-for pathological functions that break other integration methods.
+\strong{Available Built-in Functions:}
 
-The integration is performed using the FLINT/ARB library, which provides
-mathematically guaranteed error bounds rather than heuristic estimates.
+\emph{Polynomials:}
+\itemize{
+\item \code{"constant"}: f(x) = 1
+\item \code{"linear"}: f(x) = x
+\item \code{"quadratic"}: f(x) = x²
+\item \code{"cubic"}: f(x) = x³
 }
+
+\emph{Rational Functions:}
+\itemize{
+\item \code{"reciprocal"}: f(x) = 1/x
+\item \code{"arctangent"}: f(x) = 1/(1+x²)
+}
+
+\emph{Exponential Functions:}
+\itemize{
+\item \code{"exp"}: f(x) = exp(x)
+\item \code{"exp_minus"}: f(x) = exp(-x)
+\item \code{"gaussian"}: f(x) = exp(-x²)
+}
+
+\emph{Logarithmic Functions:}
+\itemize{
+\item \code{"log"}: f(x) = ln(x)
+}
+
+\emph{Trigonometric Functions:}
+\itemize{
+\item \code{"sin"}: f(x) = sin(x)
+\item \code{"cos"}: f(x) = cos(x)
+\item \code{"sinc"}: f(x) = sin(x)/x
+}
+
+\emph{Hyperbolic Functions:}
+\itemize{
+\item \code{"sinh"}: f(x) = sinh(x)
+\item \code{"cosh"}: f(x) = cosh(x)
+\item \code{"sech"}: f(x) = sech(x)
+}
+
+\emph{Special Integrands:}
+\itemize{
+\item \code{"gamma_0"}: f(x) = exp(-x) \link{for Γ(1)}
+\item \code{"gamma_1"}: f(x) = x*exp(-x) \link{for Γ(2)}
+\item \code{"gamma_2"}: f(x) = x²*exp(-x) \link{for Γ(3)}
+}
+}
+\section{Accuracy Guarantee}{
+
+This function provides mathematically rigorous error bounds with accuracy
+typically exceeding 1e-20 at 128-bit precision. All built-in functions
+include proper complex holomorphic extensions required by the ARB library.
+}
+
+\section{Composition Strategy}{
+
+To integrate complex expressions, decompose them into sums/differences of
+built-in functions and integrate each term separately:
+
+For ∫(x² + sin(x))dx from 0 to π:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{term1 <- integrate_rigorous("quadratic", 0, pi)
+term2 <- integrate_rigorous("sin", 0, pi)
+total <- term1$value + term2$value  # π³/3 + 2
+}\if{html}{\out{</div>}}
+}
+
 \examples{
 \dontrun{
-# Example 1: Built-in arctangent function ∫[0,1] arctan(x) dx
+# Example 1: Arctangent integral ∫₀¹ 1/(1+x²) dx = π/4
 result1 <- integrate_rigorous("arctangent", 0, 1)
 print(result1)
-# Expected: value = 0.438824573117475654907044785090787437011542282663648828...
+# Expected: 0.785398163397448309615660845819875721049...
 
-# Example 2: Sine function ∫[0,π] sin(x) dx = 2
-result2 <- integrate_rigorous(sin, 0, pi)
+# Example 2: Gaussian integral ∫₀² exp(-x²) dx
+result2 <- integrate_rigorous("gaussian", 0, 2)
 print(result2)
-# Expected: value ≈ 2.0
+# Expected: 0.882081390762421679967481035914054037224...
 
-# Example 3: Gaussian function ∫[0,2] exp(-x²) dx
-gaussian_func <- function(x) exp(-x^2)
-result3 <- integrate_rigorous(gaussian_func, 0, 2)
+# Example 3: Sine integral ∫₀π sin(x) dx = 2
+result3 <- integrate_rigorous("sin", 0, pi)
 print(result3)
-# Expected: value ≈ 0.88208139076242167996748103591405403722405...
+# Expected: exactly 2.0
+
+# Example 4: High precision integration
+result4 <- integrate_rigorous("gaussian", 0, 1, precision = 256)
+cat("256-bit result:", result4$value_str, "\n")
+
+# Example 5: Gamma function integral ∫₀∞ x²exp(-x) dx = Γ(3) = 2
+result5 <- integrate_rigorous("gamma_2", 0, 10)  # Truncate at 10
+print(result5)
+# Expected: ≈ 2.0 (with small truncation error)
 }
 
 }
@@ -87,5 +158,5 @@ Johansson, F. (2017). Arb: Efficient Arbitrary-Precision Midpoint-Radius
 Interval Arithmetic. IEEE Transactions on Computers.
 }
 \seealso{
-\code{\link[=integrate]{integrate()}}, \code{\link[=print.rigorous_result]{print.rigorous_result()}}
+\code{\link[=list_builtin_functions]{list_builtin_functions()}}, \code{\link[=print.rigorous_result]{print.rigorous_result()}}
 }
