@@ -5,4 +5,4 @@ PKG_LIBS = -L/opt/homebrew/lib -lflint -lgmp -lmpfr -lm
 OBJECTS = init.o r_interface.o integration_engine.o builtin_functions.o
 
 # Use C11 standard to avoid warnings about C11 extensions
-PKG_CFLAGS = -std=c11 -Wno-unused-parameter
+PKG_CFLAGS = -DHAVE_VISIBILITY_ATTRIBUTE
