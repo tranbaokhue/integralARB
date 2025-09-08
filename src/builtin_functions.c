@@ -223,32 +223,6 @@ int cos_function(acb_ptr res, const acb_t z, void* param, slong order, slong pre
   return 0;
 }
 
-int sinc_function(acb_ptr res, const acb_t z, void* param, slong order, slong prec) {
-  (void)param;
-  if (order == 0) {
-    if (acb_contains_zero(z)) {
-      // Handle sinc(0) = 1 with series expansion
-      acb_t z2, term;
-      acb_init(z2);
-      acb_init(term);
-      acb_mul(z2, z, z, prec);
-      acb_div_ui(term, z2, 6, prec);
-      acb_sub_ui(res, term, 1, prec);
-      acb_neg(res, res);
-      acb_clear(z2);
-      acb_clear(term);
-    } else {
-      acb_sin(res, z, prec);
-      acb_div(res, res, z, prec);
-    }
-  }
-  else {
-    // Derivatives of sinc are complex - use series expansion
-    acb_indeterminate(res);
-  }
-  return 0;
-}
-
 // =============================================================================
 // HYPERBOLIC FUNCTIONS
 // =============================================================================
@@ -298,48 +272,6 @@ int sech_function(acb_ptr res, const acb_t z, void* param, slong order, slong pr
 }
 
 // =============================================================================
-// SPECIAL FUNCTIONS
-// =============================================================================
-
-int gamma_integrand(acb_ptr res, const acb_t z, void* param, slong order, slong prec) {
-  // x^n * exp(-x) for Gamma function integrals
-  int* n_ptr = (int*)param;
-  int n = n_ptr ? *n_ptr : 0;
-
-  if (order == 0) {
-    acb_t z_pow, exp_neg_z;
-    acb_init(z_pow);
-    acb_init(exp_neg_z);
-
-    acb_pow_ui(z_pow, z, n, prec);
-    acb_neg(exp_neg_z, z);
-    acb_exp(exp_neg_z, exp_neg_z, prec);
-    acb_mul(res, z_pow, exp_neg_z, prec);
-
-    acb_clear(z_pow);
-    acb_clear(exp_neg_z);
-  }
-  else {
-    // Derivatives are complex - implement if needed
-    acb_indeterminate(res);
-  }
-  return 0;
-}
-
-int bessel_j0_integrand(acb_ptr res, const acb_t z, void* param, slong order, slong prec) {
-  (void)param;
-  if (order == 0) {
-    // This would require implementing Bessel functions
-    // For now, use ARB's built-in if available
-    acb_indeterminate(res);  // Placeholder
-  }
-  else {
-    acb_indeterminate(res);
-  }
-  return 0;
-}
-
-// =============================================================================
 // FUNCTION REGISTRY
 // =============================================================================
 
@@ -365,23 +297,17 @@ static const builtin_function_entry_t builtin_functions[] = {
           // Trigonometric
   {"sin", "f(x) = sin(x)", "\\sin(x)", sin_function, "-cos(x)"},
   {"cos", "f(x) = cos(x)", "\\cos(x)", cos_function, "sin(x)"},
-  {"sinc", "f(x) = sin(x)/x", "\\frac{\\sin(x)}{x}", sinc_function, "Si(x)"},
 
   // Hyperbolic
   {"sinh", "f(x) = sinh(x)", "\\sinh(x)", sinh_function, "cosh(x)"},
   {"cosh", "f(x) = cosh(x)", "\\cosh(x)", cosh_function, "sinh(x)"},
   {"sech", "f(x) = sech(x)", "\\text{sech}(x)", sech_function, "arctan(sinh(x))"},
 
-  // Special integrands
-  {"gamma_0", "f(x) = exp(-x)", "e^{-x}", exp_minus_x, "Γ(1) = 1"},
-  {"gamma_1", "f(x) = x*exp(-x)", "x e^{-x}", gamma_integrand, "Γ(2) = 1"},
-  {"gamma_2", "f(x) = x²*exp(-x)", "x^2 e^{-x}", gamma_integrand, "Γ(3) = 2"},
-
   // Terminator
   {NULL, NULL, NULL, NULL, NULL}
 };
 
-// Function to find builtin by name
+// Function to find built-in by name
 const builtin_function_entry_t* find_builtin_function(const char* name) {
   for (int i = 0; builtin_functions[i].name != NULL; i++) {
     if (strcmp(builtin_functions[i].name, name) == 0) {
