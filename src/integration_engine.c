@@ -3,10 +3,7 @@
 #include <math.h>
 
 // Helper function to convert arb result to strings with high precision
-static void integration_result_set_strings_from_arb(integration_result_t *result,
-                                                    const arb_t x,
-                                                    slong prec_bits,
-                                                    slong digits)
+static void integration_result_set_strings_from_arb(integration_result_t *result, const arb_t x, slong prec_bits, slong digits)
 {
   // Get interval endpoints
   arf_t lo, hi, mid, err;
@@ -24,18 +21,18 @@ static void integration_result_set_strings_from_arb(integration_result_t *result
   arf_mul_2exp_si(err, err, -1);
 
   // Free any previous strings
-  if (result->value_str) {
-    flint_free(result->value_str);
-    result->value_str = NULL;
+  if (result -> value_str) {
+    flint_free(result -> value_str);
+    result -> value_str = NULL;
   }
-  if (result->error_str) {
-    flint_free(result->error_str);
-    result->error_str = NULL;
+  if (result -> error_str) {
+    flint_free(result -> error_str);
+    result -> error_str = NULL;
   }
 
   // Convert to decimal strings
-  result->value_str = arf_get_str(mid, digits);
-  result->error_str = arf_get_str(err, digits);
+  result -> value_str = arf_get_str(mid, digits);
+  result -> error_str = arf_get_str(err, digits);
 
   arf_clear(lo); arf_clear(hi); arf_clear(mid); arf_clear(err);
 }
@@ -43,13 +40,13 @@ static void integration_result_set_strings_from_arb(integration_result_t *result
 // Cleanup functions
 void cleanup_integration_result(integration_result_t* result) {
   if (!result) return;
-  if (result->value_str) {
-    flint_free(result->value_str);
-    result->value_str = NULL;
+  if (result -> value_str) {
+    flint_free(result -> value_str);
+    result -> value_str = NULL;
   }
-  if (result->error_str) {
-    flint_free(result->error_str);
-    result->error_str = NULL;
+  if (result -> error_str) {
+    flint_free(result -> error_str);
+    result -> error_str = NULL;
   }
 }
 
@@ -106,22 +103,22 @@ integration_result_t perform_integration(integrand_t* integrand,
   acb_set_d(acb_b, b);
 
   // Set tolerance
-  mag_set_d(tol, params->abs_tolerance);
+  mag_set_d(tol, params -> abs_tolerance);
 
   // Configure integration options for high accuracy
   acb_calc_integrate_opt_init(options);
-  options->deg_limit = 120;  // Higher degree limit for better accuracy
-  options->eval_limit = params->max_evaluations;
-  options->depth_limit = params->max_depth;
-  options->verbose = params->verbose;
+  options -> deg_limit = 120;  // Higher degree limit for better accuracy
+  options -> eval_limit = params -> max_evaluations;
+  options -> depth_limit = params -> max_depth;
+  options -> verbose = params -> verbose;
 
   // Choose integrand function
   acb_calc_func_t integrand_func = NULL;
   void* integrand_param = NULL;
 
-  if (integrand->type == INTEGRAND_BUILTIN) {
-    integrand_func = integrand->builtin_func;
-    integrand_param = integrand->data;
+  if (integrand -> type == INTEGRAND_BUILTIN) {
+    integrand_func = integrand -> builtin_func;
+    integrand_param = integrand -> data;
   } else {
     result.status = -1;
     strncpy(result.message, "Only built-in functions supported", sizeof(result.message)-1);
@@ -137,7 +134,7 @@ integration_result_t perform_integration(integrand_t* integrand,
   }
 
   // Perform the integration with high precision
-  slong rel_goal = (slong)params->precision;
+  slong rel_goal = (slong)params -> precision;
 
   int status = acb_calc_integrate(acb_result,
                                   integrand_func,
@@ -147,7 +144,7 @@ integration_result_t perform_integration(integrand_t* integrand,
                                   rel_goal,
                                   tol,
                                   options,
-                                  (slong)params->precision);
+                                  (slong)params -> precision);
 
   if (status == 0) {
     // Success: extract real part and populate result
@@ -172,13 +169,13 @@ integration_result_t perform_integration(integrand_t* integrand,
     result.message[sizeof(result.message)-1] = '\0';
 
     // Basic diagnostics - these are estimates
-    result.evaluations = options->eval_limit / 100;  // Rough estimate
+    result.evaluations = options -> eval_limit / 100;  // Rough estimate
     result.subdivisions = 1;
 
     // High-precision string representations
-    slong digits = (slong)((double)params->precision * 0.30102999566398114) + 10;
+    slong digits = (slong)((double)params -> precision * 0.30102999566398114) + 10;
     integration_result_set_strings_from_arb(&result, real_part,
-                                            (slong)params->precision, digits);
+                                            (slong)params -> precision, digits);
 
     arb_clear(real_part);
     mag_clear(error_mag);
