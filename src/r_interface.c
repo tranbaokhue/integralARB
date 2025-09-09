@@ -118,7 +118,7 @@ SEXP integrate_expression_c(SEXP expression, SEXP a_str, SEXP b_str, SEXP precis
   if (!parsed_expr) {
     result.status = -1;
     snprintf(result.message, sizeof(result.message),
-             "Failed to parse expression: %s. Supported: sin(expr), cos(expr), exp(expr), log(expr), sinh(expr), cosh(expr), x^n, +, -, *, ()",
+             "Failed to parse expression: %s. Supported: sin(expr), cos(expr), atan(expr), exp(expr), log(expr), sinh(expr), cosh(expr), x^n, +, -, *, ()",
              expr);
     goto create_r_result;
   }
