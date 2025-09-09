@@ -68,6 +68,7 @@ parsing and derivative computation for guaranteed accuracy.
 \itemize{
 \item \code{sin(expr)} - Sine function
 \item \code{cos(expr)} - Cosine function
+\item \code{atan(expr)}, \code{arctan(expr)} - Arctangent function
 \item \code{exp(expr)} - Exponential function
 \item \code{log(expr)}, \code{ln(expr)} - Natural logarithm
 \item \code{sinh(expr)} - Hyperbolic sine
@@ -166,8 +167,15 @@ pi_quarter <- pi/4
 cat("∫₀¹ 1/(1+x²) dx =", arctangent_result$value, "\n")
 cat("π/4 =", pi_quarter, "\n")
 cat("Difference:", abs(arctangent_result$value - pi_quarter), "\n")
-}
 
+# Example 11: Arctangent integral ∫₀¹ atan(x) dx ≈ π/4 - ln(2)/2
+result11 <- integrate_rigorous("atan(x)", "0", "1")
+print(result11)
+
+# Example 12: Arctangent with scaling ∫₀¹ atan(2*x) dx
+result12 <- integrate_rigorous("atan(2*x)", "0", "1")
+print(result12)
+}
 }
 \references{
 Johansson, F. (2017). Arb: Efficient Arbitrary-Precision Midpoint-Radius

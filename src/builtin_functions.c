@@ -321,7 +321,7 @@ static expression_node_t* parse_expression(tokenizer_t* tok) {
 
 static int is_supported_function(const char* name) {
   const char* supported[] = {
-    "sin", "cos", "exp", "log", "ln", "sinh", "cosh", NULL
+    "sin", "cos", "exp", "log", "ln", "sinh", "cosh", "atan", "arctan", NULL
   };
 
   for (int i = 0; supported[i] != NULL; i++) {
@@ -365,8 +365,7 @@ static int validate_expression_tree(expression_node_t* node) {
 static int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
                                     const acb_t x, slong order, slong prec);
 
-static int evaluate_function_derivative(acb_ptr result, const char* func_name,
-                                        const acb_t arg, slong order, slong prec) {
+static int evaluate_function_derivative(acb_ptr result, const char* func_name, const acb_t arg, slong order, slong prec) {
   if (strcmp(func_name, "sin") == 0) {
     switch (order % 4) {
     case 0: acb_sin(result, arg, prec); break;
@@ -385,26 +384,51 @@ static int evaluate_function_derivative(acb_ptr result, const char* func_name,
     }
     return 1;
   }
+  else if (strcmp(func_name, "atan") == 0 || strcmp(func_name, "arctan") == 0) {
+    if (order == 0) {
+      acb_atan(result, arg, prec);
+    } else if (order == 1) {
+      // d/dx[atan(x)] = 1/(1+x²)
+      acb_t temp;
+      acb_init(temp);
+      acb_mul(temp, arg, arg, prec);
+      acb_add_ui(temp, temp, 1, prec);
+      acb_inv(result, temp, prec);
+      acb_clear(temp);
+    } else {
+      // Higher derivatives: d^n/dx^n[atan(x)] = derivatives of 1/(1+x²)
+      acb_indeterminate(result);
+    }
+    return 1;
+  }
   else if (strcmp(func_name, "exp") == 0) {
+    // All derivatives of exp(x) are exp(x)
     acb_exp(result, arg, prec);
     return 1;
   }
   else if (strcmp(func_name, "log") == 0 || strcmp(func_name, "ln") == 0) {
     if (order == 0) {
       acb_log(result, arg, prec);
+    } else if (order == 1) {
+      // d/dx[log(x)] = 1/x
+      acb_inv(result, arg, prec);
     } else {
       // d^n/dx^n[log(x)] = (-1)^(n-1) * (n-1)! / x^n
-      acb_pow_ui(result, arg, order, prec);
-      acb_inv(result, result, prec);
+      acb_t temp;
+      acb_init(temp);
+      acb_pow_ui(temp, arg, order, prec);
+      acb_inv(temp, temp, prec);
 
       slong factorial = 1;
       for (slong i = 1; i < order; i++) factorial *= i;
 
-      acb_mul_si(result, result, ((order - 1) % 2 == 0) ? factorial : -factorial, prec);
+      acb_mul_si(result, temp, ((order - 1) % 2 == 0) ? factorial : -factorial, prec);
+      acb_clear(temp);
     }
     return 1;
   }
   else if (strcmp(func_name, "sinh") == 0) {
+    // Derivatives alternate: sinh, cosh, sinh, cosh, ...
     if (order % 2 == 0) {
       acb_sinh(result, arg, prec);
     } else {
@@ -413,6 +437,7 @@ static int evaluate_function_derivative(acb_ptr result, const char* func_name,
     return 1;
   }
   else if (strcmp(func_name, "cosh") == 0) {
+    // Derivatives alternate: cosh, sinh, cosh, sinh, ...
     if (order % 2 == 0) {
       acb_cosh(result, arg, prec);
     } else {
@@ -460,30 +485,85 @@ static int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
   }
 
   case EXPR_FUNCTION: {
+    if (order == 0) {
+    // Function evaluation
     acb_t arg_val;
     acb_init(arg_val);
-
-    // For now, only handle f(x) - chain rule for f(g(x)) is complex
-    if (order == 0) {
-      if (!evaluate_expression_tree(arg_val, node->argument, x, 0, prec)) {
-        acb_clear(arg_val);
-        return 0;
-      }
-      int success = evaluate_function_derivative(result, node->value, arg_val, 0, prec);
+    if (!evaluate_expression_tree(arg_val, node->argument, x, 0, prec)) {
       acb_clear(arg_val);
-      return success;
-    } else {
-      // For derivatives, we need chain rule - simplified for f(x) case
-      if (node->argument->type == EXPR_VARIABLE) {
-        int success = evaluate_function_derivative(result, node->value, x, order, prec);
-        acb_clear(arg_val);
-        return success;
-      } else {
-        // Complex chain rule - not implemented
-        acb_clear(arg_val);
+      return 0;
+    }
+    int success = evaluate_function_derivative(result, node->value, arg_val, 0, prec);
+    acb_clear(arg_val);
+    return success;
+  }
+    else if (order == 1) {
+      // Case 1: f(c*x) where c is constant
+      if (node->argument->type == EXPR_BINARY_OP &&
+          strcmp(node->argument->value, "*") == 0) {
+
+        // Check both orders: c*x or x*c
+        expression_node_t* coeff_node = NULL;
+        expression_node_t* var_node = NULL;
+
+        if (node->argument->left->type == EXPR_NUMBER &&
+            node->argument->right->type == EXPR_VARIABLE) {
+          coeff_node = node->argument->left;
+          var_node = node->argument->right;
+        } else if (node->argument->left->type == EXPR_VARIABLE &&
+          node->argument->right->type == EXPR_NUMBER) {
+          coeff_node = node->argument->right;
+          var_node = node->argument->left;
+        }
+
+        if (coeff_node && var_node) {
+          arb_t coeff;
+          acb_t scaled_x;
+          arb_init(coeff);
+          acb_init(scaled_x);
+
+          arb_set_str(coeff, coeff_node->value, prec);
+          acb_mul_arb(scaled_x, x, coeff, prec);
+
+          // f'(c*x) * c
+          evaluate_function_derivative(result, node->value, scaled_x, 1, prec);
+          acb_mul_arb(result, result, coeff, prec);
+
+          arb_clear(coeff);
+          acb_clear(scaled_x);
+          return 1;
+        }
+      }
+
+      // Case 2: f(-x)
+      else if (node->argument->type == EXPR_UNARY_MINUS &&
+               node->argument->right->type == EXPR_VARIABLE) {
+
+        acb_t neg_x;
+        acb_init(neg_x);
+        acb_neg(neg_x, x);
+
+        evaluate_function_derivative(result, node->value, neg_x, 1, prec);
+        acb_neg(result, result);  // f'(-x) * (-1)
+
+        acb_clear(neg_x);
+        return 1;
+      }
+
+      // Case 3: f(x) - simple variable
+      else if (node->argument->type == EXPR_VARIABLE) {
+        return evaluate_function_derivative(result, node->value, x, 1, prec);
+      }
+
+      // All other cases: NOT SUPPORTED
+      else {
         acb_indeterminate(result);
         return 0;
       }
+    }
+    else {
+      acb_indeterminate(result);
+      return 0;
     }
   }
 
@@ -517,8 +597,8 @@ static int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
       return 1;
     }
     else if (strcmp(node->value, "*") == 0) {
-      // Product rule: (fg)' = f'g + fg'
       if (order == 0) {
+        // Multiplication: (f * g)
         acb_t left_val, right_val;
         acb_init(left_val); acb_init(right_val);
 
@@ -531,14 +611,109 @@ static int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
         acb_mul(result, left_val, right_val, prec);
         acb_clear(left_val); acb_clear(right_val);
         return 1;
-      } else {
-        // Higher order product rule is complex - not implemented
+      }
+      else if (order == 1) {
+        // SPECIAL CASE: c*f(x) where c is constant
+        if (node->left->type == EXPR_NUMBER &&
+            node->right->type == EXPR_FUNCTION) {
+
+          arb_t coeff;
+          acb_t func_derivative;
+          arb_init(coeff);
+          acb_init(func_derivative);
+
+          arb_set_str(coeff, node->left->value, prec);
+
+          if (!evaluate_expression_tree(func_derivative, node->right, x, 1, prec)) {
+            arb_clear(coeff);
+            acb_clear(func_derivative);
+            return 0;
+          }
+
+          acb_mul_arb(result, func_derivative, coeff, prec);
+
+          arb_clear(coeff);
+          acb_clear(func_derivative);
+          return 1;
+        }
+
+        // SPECIAL CASE: f(x)*c where c is constant
+        else if (node->left->type == EXPR_FUNCTION &&
+                 node->right->type == EXPR_NUMBER) {
+
+          arb_t coeff;
+          acb_t func_derivative;
+          arb_init(coeff);
+          acb_init(func_derivative);
+
+          arb_set_str(coeff, node->right->value, prec);
+
+          if (!evaluate_expression_tree(func_derivative, node->left, x, 1, prec)) {
+            arb_clear(coeff);
+            acb_clear(func_derivative);
+            return 0;
+          }
+
+          acb_mul_arb(result, func_derivative, coeff, prec);
+
+          arb_clear(coeff);
+          acb_clear(func_derivative);
+          return 1;
+        }
+
+        // GENERAL CASE: Product rule (f*g)' = f'*g + f*g'
+        else {
+          acb_t f, g, f_prime, g_prime, term1, term2;
+          acb_init(f); acb_init(g); acb_init(f_prime); acb_init(g_prime);
+          acb_init(term1); acb_init(term2);
+
+          if (!evaluate_expression_tree(f, node->left, x, 0, prec) ||
+              !evaluate_expression_tree(g, node->right, x, 0, prec) ||
+              !evaluate_expression_tree(f_prime, node->left, x, 1, prec) ||
+              !evaluate_expression_tree(g_prime, node->right, x, 1, prec)) {
+              acb_clear(f); acb_clear(g); acb_clear(f_prime); acb_clear(g_prime);
+              acb_clear(term1); acb_clear(term2);
+              return 0;
+          }
+
+          acb_mul(term1, f_prime, g, prec);    // f' * g
+          acb_mul(term2, f, g_prime, prec);    // f * g'
+          acb_add(result, term1, term2, prec); // f'*g + f*g'
+
+          acb_clear(f); acb_clear(g); acb_clear(f_prime); acb_clear(g_prime);
+          acb_clear(term1); acb_clear(term2);
+          return 1;
+        }
+      }
+      else {
+        // Higher order multiplication derivatives not implemented
         acb_indeterminate(result);
         return 0;
       }
     }
-    // Other operators (/, ^) not implemented for derivatives
+    else if (strcmp(node->value, "^") == 0) {
+      // Handle simple cases like x^n where n is a constant
+      if (order == 0) {
+        acb_t base_val, exp_val;
+        acb_init(base_val); acb_init(exp_val);
+
+        if (!evaluate_expression_tree(base_val, node->left, x, 0, prec) ||
+            !evaluate_expression_tree(exp_val, node->right, x, 0, prec)) {
+            acb_clear(base_val); acb_clear(exp_val);
+            return 0;
+        }
+
+        acb_pow(result, base_val, exp_val, prec);
+        acb_clear(base_val); acb_clear(exp_val);
+        return 1;
+      } else {
+        // Power rule derivatives are complex - not implemented
+        acb_indeterminate(result);
+        return 0;
+      }
+    }
     else {
+      // Other operators not supported
       acb_indeterminate(result);
       return 0;
     }
@@ -617,7 +792,7 @@ void cleanup_parsed_expression(parsed_expression_t* expr) {
 const builtin_function_entry_t* find_builtin_function(const char* name) {
   // This is now mainly for validation - actual evaluation uses the parser
   const char* supported[] = {
-    "sin", "cos", "exp", "log", "ln", "sinh", "cosh", NULL
+    "sin", "cos", "exp", "log", "ln", "sinh", "cosh", "atan", "arctan", NULL
   };
 
   for (int i = 0; supported[i] != NULL; i++) {
@@ -634,10 +809,10 @@ void list_builtin_functions(char* buffer, size_t buffer_size) {
   snprintf(buffer, buffer_size,
            "Supported mathematical expressions:\n"
            "Variables: x\n"
-           "Functions: sin(expr), cos(expr), exp(expr), log(expr), ln(expr), sinh(expr), cosh(expr)\n"
-           "  where expr can be: x, 2*x, -x, x+1, etc.\n"
+           "Functions: sin(expr), cos(expr), exp(expr), log(expr), ln(expr), sinh(expr), cosh(expr), atan(expr)\n"
+           "  where expr can be: x, 2*x, -x, etc.\n"
            "Operations: +, -, *, ^, ()\n"
            "Numbers: Any decimal number (use strings for high precision)\n"
-           "Examples: 'sin(2*x)', 'cos(x) + exp(-x)', 'x^2 + sin(3*x)', '2*sinh(x) - x'\n"
+           "Examples: 'sin(2*x)', 'cos(x) + exp(-x)', 'atan(x)', '2*sinh(x) - x'\n"
            "Chain rule: First derivatives supported for f(g(x)) where g(x) is simple\n");
 }

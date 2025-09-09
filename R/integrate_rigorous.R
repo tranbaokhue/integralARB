@@ -38,6 +38,7 @@
 #' *Functions (with chain rule support):*
 #' - `sin(expr)` - Sine function
 #' - `cos(expr)` - Cosine function
+#' - `atan(expr)`, `arctan(expr)` - Arctangent function
 #' - `exp(expr)` - Exponential function
 #' - `log(expr)`, `ln(expr)` - Natural logarithm
 #' - `sinh(expr)` - Hyperbolic sine
@@ -123,8 +124,15 @@
 #' cat("∫₀¹ 1/(1+x²) dx =", arctangent_result$value, "\n")
 #' cat("π/4 =", pi_quarter, "\n")
 #' cat("Difference:", abs(arctangent_result$value - pi_quarter), "\n")
-#' }
 #'
+#' # Example 11: Arctangent integral ∫₀¹ atan(x) dx ≈ π/4 - ln(2)/2
+#' result11 <- integrate_rigorous("atan(x)", "0", "1")
+#' print(result11)
+#'
+#' # Example 12: Arctangent with scaling ∫₀¹ atan(2*x) dx
+#' result12 <- integrate_rigorous("atan(2*x)", "0", "1")
+#' print(result12)
+#' }
 #' @references
 #' Johansson, F. (2017). Arb: Efficient Arbitrary-Precision Midpoint-Radius
 #' Interval Arithmetic. IEEE Transactions on Computers.
@@ -303,7 +311,14 @@ get_exact_result <- function(expression, a, b) {
     return(-cos(b_num) + cos(a_num))
   } else if (expression == "cos(x)") {
     return(sin(b_num) - sin(a_num))
-  } else if (expression == "exp(x)") {
+  } else if (expression == "atan(x)" || expression == "arctan(x)") {
+    # ∫ atan(x) dx = x*atan(x) - ln(1+x²)/2 + C
+    # For definite integral [a,b]: complex but computable
+    b_val <- b_num * atan(b_num) - log(1 + b_num^2)/2
+    a_val <- a_num * atan(a_num) - log(1 + a_num^2)/2
+    return(b_val - a_val)
+  }
+  else if (expression == "exp(x)") {
     return(exp(b_num) - exp(a_num))
   } else if (expression == "exp(-x)") {
     return(exp(-a_num) - exp(-b_num))
