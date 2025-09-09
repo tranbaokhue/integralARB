@@ -2,10 +2,10 @@
 % Please edit documentation in R/integrate_rigorous.R
 \name{integrate_rigorous}
 \alias{integrate_rigorous}
-\title{Rigorous Numerical Integration with Built-in Analytical Functions}
+\title{Rigorous Numerical Integration with Mathematical Expression Parsing}
 \usage{
 integrate_rigorous(
-  func_name,
+  expression,
   a,
   b,
   precision = 128L,
@@ -13,16 +13,15 @@ integrate_rigorous(
   rel_tol = NULL,
   max_eval = 1000000L,
   max_depth = 100L,
-  verbose = FALSE,
-  params = NULL
+  verbose = FALSE
 )
 }
 \arguments{
-\item{func_name}{Name of built-in function (see details for available functions)}
+\item{expression}{Mathematical expression as a character string (required)}
 
-\item{a}{Lower limit of integration (numeric)}
+\item{a}{Lower limit of integration as character string for precision (required)}
 
-\item{b}{Upper limit of integration (numeric)}
+\item{b}{Upper limit of integration as character string for precision (required)}
 
 \item{precision}{Working precision in bits (default: 128, range: 64-1024)}
 
@@ -35,8 +34,6 @@ integrate_rigorous(
 \item{max_depth}{Maximum subdivision depth (default: 100)}
 
 \item{verbose}{Print integration progress (default: FALSE)}
-
-\item{params}{Additional parameters for parameterized functions (list)}
 }
 \value{
 An object of class \code{rigorous_result} containing:
@@ -45,118 +42,140 @@ An object of class \code{rigorous_result} containing:
 \item \code{value_str} - High-precision string representation
 \item \code{error_bound} - Rigorous error bound (double)
 \item \code{error_str} - High-precision error bound (string)
+\item \code{abs_error} - Absolute error estimate
+\item \code{rel_error} - Relative error estimate
 \item \code{evaluations} - Number of function evaluations performed
 \item \code{status} - Integration status (0 = success)
+\item \code{message} - Status message
+\item \code{expression} - Original expression string
 \item \code{precision} - Working precision used
 }
 }
 \description{
 Computes definite integrals using ball arithmetic with mathematically
-rigorous error bounds. Only supports built-in analytical functions that
-can provide complex holomorphic extensions for guaranteed accuracy.
+rigorous error bounds. Supports mathematical expressions with automatic
+parsing and derivative computation for guaranteed accuracy.
 }
 \details{
-\strong{Available Built-in Functions:}
+\strong{Supported Mathematical Expressions:}
 
-\emph{Polynomials:}
+\emph{Variables:}
 \itemize{
-\item \code{"constant"}: f(x) = 1
-\item \code{"linear"}: f(x) = x
-\item \code{"quadratic"}: f(x) = x²
-\item \code{"cubic"}: f(x) = x³
+\item \code{x} - Integration variable
 }
 
-\emph{Rational Functions:}
+\emph{Functions (with chain rule support):}
 \itemize{
-\item \code{"reciprocal"}: f(x) = 1/x
-\item \code{"arctangent"}: f(x) = 1/(1+x²)
+\item \code{sin(expr)} - Sine function
+\item \code{cos(expr)} - Cosine function
+\item \code{exp(expr)} - Exponential function
+\item \code{log(expr)}, \code{ln(expr)} - Natural logarithm
+\item \code{sinh(expr)} - Hyperbolic sine
+\item \code{cosh(expr)} - Hyperbolic cosine
 }
 
-\emph{Exponential Functions:}
+\emph{Operations:}
 \itemize{
-\item \code{"exp"}: f(x) = exp(x)
-\item \code{"exp_minus"}: f(x) = exp(-x)
-\item \code{"gaussian"}: f(x) = exp(-x²)
+\item \code{+}, \code{-} - Addition, subtraction
+\item \code{*} - Multiplication (with first derivative product rule)
+\item \code{^} - Exponentiation (limited support)
+\item \verb{()} - Parentheses for grouping
 }
 
-\emph{Logarithmic Functions:}
+\emph{Numbers:}
 \itemize{
-\item \code{"log"}: f(x) = ln(x)
+\item Any decimal number (use strings for high precision)
+\item Scientific notation supported
 }
 
-\emph{Trigonometric Functions:}
+\strong{Chain Rule Examples:}
 \itemize{
-\item \code{"sin"}: f(x) = sin(x)
-\item \code{"cos"}: f(x) = cos(x)
-\item \code{"sinc"}: f(x) = sin(x)/x
-}
-
-\emph{Hyperbolic Functions:}
-\itemize{
-\item \code{"sinh"}: f(x) = sinh(x)
-\item \code{"cosh"}: f(x) = cosh(x)
-\item \code{"sech"}: f(x) = sech(x)
-}
-
-\emph{Special Integrands:}
-\itemize{
-\item \code{"gamma_0"}: f(x) = exp(-x) \link{for Γ(1)}
-\item \code{"gamma_1"}: f(x) = x*exp(-x) \link{for Γ(2)}
-\item \code{"gamma_2"}: f(x) = x²*exp(-x) \link{for Γ(3)}
+\item \code{sin(2*x)} - Sine of scaled argument
+\item \code{cos(3*x)} - Cosine with coefficient
+\item \code{exp(-x)} - Negative exponential
+\item \code{log(2*x)} - Logarithm of scaled argument
 }
 }
 \section{Accuracy Guarantee}{
 
 This function provides mathematically rigorous error bounds with accuracy
-typically exceeding 1e-20 at 128-bit precision. All built-in functions
-include proper complex holomorphic extensions required by the ARB library.
+typically exceeding 1e-20 at 128-bit precision. All supported functions
+include complete derivative implementations required by ARB's integration
+algorithm.
 }
 
-\section{Composition Strategy}{
+\section{String Input Requirement}{
 
-To integrate complex expressions, decompose them into sums/differences of
-built-in functions and integrate each term separately:
+For precision preservation, ALL inputs (expression, a, b) must be character
+strings. Numeric inputs are automatically converted but may lose precision
+for high-precision requests (>64 bits).
+}
 
-For ∫(x² + sin(x))dx from 0 to π:
+\section{Chain Rule Support}{
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{term1 <- integrate_rigorous("quadratic", 0, pi)
-term2 <- integrate_rigorous("sin", 0, pi)
-total <- term1$value + term2$value  # π³/3 + 2
-}\if{html}{\out{</div>}}
+First derivatives are supported for compositions f(g(x)) where g(x) is
+a simple expression. Higher-order derivatives and complex compositions
+are not yet implemented.
 }
 
 \examples{
 \dontrun{
-# Example 1: Arctangent integral ∫₀¹ 1/(1+x²) dx = π/4
-result1 <- integrate_rigorous("arctangent", 0, 1)
+# Example 1: Basic trigonometric integral ∫₀^π sin(x) dx = 2
+result1 <- integrate_rigorous("sin(x)", "0", "3.14159265358979323846")
 print(result1)
-# Expected: 0.785398163397448309615660845819875721049...
+cat("High precision result:", result1$value_str, "\n")
 
-# Example 2: Gaussian integral ∫₀² exp(-x²) dx
-result2 <- integrate_rigorous("gaussian", 0, 2)
+# Example 2: Chain rule - sine with scaling ∫₀^π sin(2*x) dx = 1
+result2 <- integrate_rigorous("sin(2*x)", "0", "3.14159265358979323846")
 print(result2)
-# Expected: 0.882081390762421679967481035914054037224...
 
-# Example 3: Sine integral ∫₀π sin(x) dx = 2
-result3 <- integrate_rigorous("sin", 0, pi)
+# Example 3: Exponential decay ∫₀^1 exp(-x) dx = 1 - 1/e
+result3 <- integrate_rigorous("exp(-x)", "0", "1")
 print(result3)
-# Expected: exactly 2.0
 
-# Example 4: High precision integration
-result4 <- integrate_rigorous("gaussian", 0, 1, precision = 256)
-cat("256-bit result:", result4$value_str, "\n")
+# Example 4: Polynomial ∫₀^1 x^2 dx = 1/3
+result4 <- integrate_rigorous("x^2", "0", "1")
+print(result4)
 
-# Example 5: Gamma function integral ∫₀∞ x²exp(-x) dx = Γ(3) = 2
-result5 <- integrate_rigorous("gamma_2", 0, 10)  # Truncate at 10
+# Example 5: Complex expression with addition
+result5 <- integrate_rigorous("sin(x) + cos(x)", "0", "1.5707963267948966")
 print(result5)
-# Expected: ≈ 2.0 (with small truncation error)
+
+# Example 6: High precision with string endpoints
+result6 <- integrate_rigorous("cos(3*x)",
+                             "0",
+                             "1.047197551196597746154214461093167628066",
+                             precision = 256)
+cat("256-bit result:", result6$value_str, "\n")
+
+# Example 7: Hyperbolic functions ∫₀^1 sinh(x) dx = cosh(1) - 1
+result7 <- integrate_rigorous("sinh(x)", "0", "1")
+print(result7)
+
+# Example 8: Logarithmic integral ∫₁^e log(x) dx = 1
+result8 <- integrate_rigorous("log(x)", "1", "2.718281828459045235360287471352662498")
+print(result8)
+
+# Example 9: Product expression ∫₀^1 2*sin(x) dx
+result9 <- integrate_rigorous("2*sin(x)", "0", "3.14159265358979323846")
+print(result9)
+
+# Example 10: Verify against known result
+arctangent_result <- integrate_rigorous("1/(1+x^2)", "0", "1")
+pi_quarter <- pi/4
+cat("∫₀¹ 1/(1+x²) dx =", arctangent_result$value, "\n")
+cat("π/4 =", pi_quarter, "\n")
+cat("Difference:", abs(arctangent_result$value - pi_quarter), "\n")
 }
 
 }
 \references{
 Johansson, F. (2017). Arb: Efficient Arbitrary-Precision Midpoint-Radius
 Interval Arithmetic. IEEE Transactions on Computers.
+
+Johansson, F. (2018). Numerical integration in arbitrary-precision ball
+arithmetic. arXiv:1802.07942.
 }
 \seealso{
-\code{\link[=list_builtin_functions]{list_builtin_functions()}}, \code{\link[=print.rigorous_result]{print.rigorous_result()}}
+\code{\link[=list_supported_expressions]{list_supported_expressions()}}, \code{\link[=print.rigorous_result]{print.rigorous_result()}}, \code{\link[=compare_with_exact]{compare_with_exact()}}
 }

@@ -2,6 +2,9 @@
 #include <string.h>
 #include <math.h>
 
+// In the latest version, this is being bypassed since r_interface calls ARB
+// directly
+
 // Helper function to convert arb result to strings with high precision
 static void integration_result_set_strings_from_arb(integration_result_t *result, const arb_t x, slong prec_bits, slong digits)
 {

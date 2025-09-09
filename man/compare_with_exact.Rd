@@ -13,5 +13,13 @@ compare_with_exact(result)
 List with comparison information
 }
 \description{
-Compare numerical result with exact analytical result
+Compares the numerical integration result with the known exact value
+when available, providing error analysis.
+}
+\examples{
+\dontrun{
+result <- integrate_rigorous("sin(x)", "0", "3.14159265358979323846")
+comparison <- compare_with_exact(result)
+print(comparison)
+}
 }

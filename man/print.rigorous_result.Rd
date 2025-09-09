@@ -4,7 +4,7 @@
 \alias{print.rigorous_result}
 \title{Print method for rigorous integration results}
 \usage{
-\method{print}{rigorous_result}(x, digits = 15, show_string = TRUE, ...)
+\method{print}{rigorous_result}(x, digits = 15, show_string = TRUE, show_call = FALSE, ...)
 }
 \arguments{
 \item{x}{A rigorous_result object}
@@ -12,6 +12,8 @@
 \item{digits}{Number of digits to display for double values}
 
 \item{show_string}{Show high-precision string representation}
+
+\item{show_call}{Show the original function call}
 
 \item{...}{Additional arguments}
 }
