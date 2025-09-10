@@ -2,18 +2,35 @@
 
 echo "Configuring for Windows..."
 
-# Check Rtools/MSYS2 locations
-if [ -d "${RTOOLS40_HOME}/usr" ]; then
-    PREFIX="${RTOOLS40_HOME}/usr"
-elif [ -d "${R_TOOLS_SOFT}" ]; then
-    PREFIX="${R_TOOLS_SOFT}"
-else
-    echo "Warning: Rtools not detected. Using default paths."
-    PREFIX="/usr"
+PKG_CPPFLAGS=""
+PKG_LIBS=""
+
+# Check multiple Windows locations
+for prefix in "${RTOOLS40_HOME}/usr" "${R_TOOLS_SOFT}" "/mingw64" "/usr/local" "C:/msys64/mingw64" "C:/vcpkg/installed/x64-windows"; do
+    if [ -d "$prefix" ] && [ -f "$prefix/include/flint/flint.h" ]; then
+        echo "Found FLINT in $prefix"
+        PKG_CPPFLAGS="-I$prefix/include -I./include -DHAVE_FLINT"
+        PKG_LIBS="-L$prefix/lib -lflint -lgmp -lmpfr -lm"
+        break
+    fi
+done
+
+if [ -z "$PKG_CPPFLAGS" ]; then
+    echo "Error: FLINT not found on Windows"
+    echo "Please install FLINT via MSYS2:"
+    echo "  pacman -S mingw-w64-x86_64-flint"
+    echo "Or see README for alternative installation methods"
+    exit 1
 fi
 
-PKG_CPPFLAGS="-I${PREFIX}/include -I./include -DHAVE_FLINT"
-PKG_LIBS="-L${PREFIX}/lib -lflint -lgmp -lmpfr -lm"
+# Create Makevars.win
+cat > src/Makevars.win << EOF
+PKG_CPPFLAGS = $PKG_CPPFLAGS
+PKG_LIBS = $PKG_LIBS
+OBJECTS = init.o r_interface.o builtin_functions.o
+PKG_CFLAGS = -DHAVE_VISIBILITY_ATTRIBUTE
+EOF
 
 echo "Windows configuration complete"
-echo "Using prefix: $PREFIX"
+echo "CPPFLAGS: $PKG_CPPFLAGS"
+echo "LIBS: $PKG_LIBS"
