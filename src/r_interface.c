@@ -144,10 +144,6 @@ SEXP integrate_expression_c(SEXP expression, SEXP a_str, SEXP b_str, SEXP precis
   }
 
   /* Initialize result structure with error defaults */
-  result.value = 0.0;
-  result.error_bound = INFINITY;
-  result.abs_error = INFINITY;
-  result.rel_error = INFINITY;
   result.evaluations = 0;
   result.subdivisions = 0;
   result.status = -1;
@@ -225,16 +221,6 @@ SEXP integrate_expression_c(SEXP expression, SEXP a_str, SEXP b_str, SEXP precis
     arb_init(real_part);
     acb_get_real(real_part, acb_result);
 
-    /* Double approximation for compatibility */
-    result.value = arf_get_d(arb_midref(real_part), ARF_RND_NEAR);
-
-    /* Error bound */
-    mag_init(error_mag);
-    arb_get_mag(error_mag, real_part);
-    result.error_bound = mag_get_d(error_mag);
-
-    result.abs_error = result.error_bound;
-    result.rel_error = (result.value != 0.0) ? result.error_bound / fabs(result.value) : result.error_bound;
     result.status = 0;
     strncpy(result.message, "Integration successful", sizeof(result.message)-1);
     result.message[sizeof(result.message)-1] = '\0';
@@ -268,7 +254,6 @@ SEXP integrate_expression_c(SEXP expression, SEXP a_str, SEXP b_str, SEXP precis
     }
 
     arb_clear(real_part);
-    mag_clear(error_mag);
 
   } else {
     /* Integration failed */
@@ -286,9 +271,6 @@ SEXP integrate_expression_c(SEXP expression, SEXP a_str, SEXP b_str, SEXP precis
     msg_index = (arb_status >= 0 && arb_status <= 4) ? arb_status : 5;
     strncpy(result.message, error_msgs[msg_index], sizeof(result.message)-1);
     result.message[sizeof(result.message)-1] = '\0';
-
-    result.value = 0.0;
-    result.error_bound = INFINITY;
 
     /* Allocate empty strings for failed integration */
     result.value_str = (char*)flint_malloc(1);
@@ -311,35 +293,25 @@ SEXP integrate_expression_c(SEXP expression, SEXP a_str, SEXP b_str, SEXP precis
     arb_clear(a_real);
     arb_clear(b_real);
 
-    /* Convert result to R list */
-    r_result = PROTECT(allocVector(VECSXP, 12));
-    names = PROTECT(allocVector(STRSXP, 12));
+    /* Convert result to R list - keep only rigorous fields */
+    r_result = PROTECT(allocVector(VECSXP, 7));  // Reduced from 12 to 7
+    names = PROTECT(allocVector(STRSXP, 7));
 
-    SET_STRING_ELT(names, 0, mkChar("value"));
-    SET_STRING_ELT(names, 1, mkChar("error_bound"));
-    SET_STRING_ELT(names, 2, mkChar("abs_error"));
-    SET_STRING_ELT(names, 3, mkChar("rel_error"));
-    SET_STRING_ELT(names, 4, mkChar("evaluations"));
-    SET_STRING_ELT(names, 5, mkChar("subdivisions"));
-    SET_STRING_ELT(names, 6, mkChar("status"));
-    SET_STRING_ELT(names, 7, mkChar("message"));
-    SET_STRING_ELT(names, 8, mkChar("value_str"));
-    SET_STRING_ELT(names, 9, mkChar("error_str"));
-    SET_STRING_ELT(names, 10, mkChar("expression"));
-    SET_STRING_ELT(names, 11, mkChar("precision"));
+    SET_STRING_ELT(names, 0, mkChar("value_str"));      // High-precision value
+    SET_STRING_ELT(names, 1, mkChar("error_bound"));    // Rigorous error bound
+    SET_STRING_ELT(names, 2, mkChar("evaluations"));    // Function evaluations
+    SET_STRING_ELT(names, 3, mkChar("status"));         // Success/failure
+    SET_STRING_ELT(names, 4, mkChar("message"));        // Status message
+    SET_STRING_ELT(names, 5, mkChar("expression"));     // Original expression
+    SET_STRING_ELT(names, 6, mkChar("precision"));      // Working precision
 
-    SET_VECTOR_ELT(r_result, 0, ScalarReal(result.value));
-    SET_VECTOR_ELT(r_result, 1, ScalarReal(result.error_bound));
-    SET_VECTOR_ELT(r_result, 2, ScalarReal(result.abs_error));
-    SET_VECTOR_ELT(r_result, 3, ScalarReal(result.rel_error));
-    SET_VECTOR_ELT(r_result, 4, ScalarInteger(result.evaluations));
-    SET_VECTOR_ELT(r_result, 5, ScalarInteger(result.subdivisions));
-    SET_VECTOR_ELT(r_result, 6, ScalarInteger(result.status));
-    SET_VECTOR_ELT(r_result, 7, mkString(result.message));
-    SET_VECTOR_ELT(r_result, 8, mkString(result.value_str ? result.value_str : ""));
-    SET_VECTOR_ELT(r_result, 9, mkString(result.error_str ? result.error_str : ""));
-    SET_VECTOR_ELT(r_result, 10, mkString(expr));
-    SET_VECTOR_ELT(r_result, 11, ScalarInteger(prec_bits));
+    SET_VECTOR_ELT(r_result, 0, mkString(result.value_str ? result.value_str : ""));
+    SET_VECTOR_ELT(r_result, 1, mkString(result.error_str ? result.error_str : ""));
+    SET_VECTOR_ELT(r_result, 2, ScalarInteger(result.evaluations));
+    SET_VECTOR_ELT(r_result, 3, ScalarInteger(result.status));
+    SET_VECTOR_ELT(r_result, 4, mkString(result.message));
+    SET_VECTOR_ELT(r_result, 5, mkString(expr));
+    SET_VECTOR_ELT(r_result, 6, ScalarInteger(prec_bits));
 
     setAttrib(r_result, R_NamesSymbol, names);
 

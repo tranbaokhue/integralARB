@@ -247,8 +247,7 @@ list_supported_expressions <- function() {
 #' @param show_call Show the original function call
 #' @param ... Additional arguments
 #' @export
-print.rigorous_result <- function(x, digits = 15, show_string = TRUE,
-                                  show_call = FALSE, ...) {
+print.rigorous_result <- function(x, show_call = FALSE, ...) {
   cat("Rigorous Integration Result\n")
   cat("===========================\n")
 
@@ -263,28 +262,25 @@ print.rigorous_result <- function(x, digits = 15, show_string = TRUE,
   cat("Precision:  ", x$precision, " bits\n\n")
 
   if (x$status == 0) {
-    if (show_string && !is.null(x$value_str) && nchar(x$value_str) > 0) {
-      cat("Value (high-precision):\n")
+    if (!is.null(x$value_str) && nchar(x$value_str) > 0) {
+      cat("Value:\n")
       cat("  ", x$value_str, "\n")
-      if (!is.null(x$error_str) && nchar(x$error_str) > 0) {
-        cat("Error bound:\n")
-        cat("  ±", x$error_str, "\n")
+      if (!is.null(x$error_bound) && nchar(x$error_bound) > 0) {
+        cat("Rigorous error bound:\n")
+        cat("  ±", x$error_bound, "\n")
       }
-      cat("Double approximation: ", format(x$value, digits = digits), "\n")
     } else {
-      cat("Value:      ", format(x$value, digits = digits), "\n")
-      cat("Error:      ±", format(x$error_bound, digits = 5), "\n")
+      cat("Value: [high-precision string not available]\n")
     }
 
-    if (!is.null(x$rel_error) && is.finite(x$rel_error) && x$rel_error > 0) {
-      cat("Rel. Error: ", format(x$rel_error, digits = 3), "\n")
-    }
-
-    # Show accuracy achieved
-    if (!is.null(x$error_bound) && is.finite(x$error_bound) && x$error_bound > 0) {
-      accuracy_digits <- -log10(x$error_bound)
-      if (accuracy_digits > 0) {
-        cat("Accuracy:   ~", floor(accuracy_digits), " decimal digits\n")
+    # Show guaranteed accuracy from error bound
+    if (!is.null(x$error_bound) && nchar(x$error_bound) > 0) {
+      error_num <- tryCatch(as.numeric(x$error_bound), error = function(e) NA)
+      if (!is.na(error_num) && error_num > 0) {
+        accuracy_digits <- -log10(error_num)
+        if (accuracy_digits > 0) {
+          cat("Guaranteed accuracy: ≥", floor(accuracy_digits), " decimal digits\n")
+        }
       }
     }
 
@@ -293,11 +289,10 @@ print.rigorous_result <- function(x, digits = 15, show_string = TRUE,
     cat("Message:    ", x$message %||% "Integration failed", "\n")
   }
 
-  cat("Evaluations:", x$evaluations %||% 0, "\n")
+  cat("Evaluations:", x$evaluations %||% 0, " (estimated)\n")
 
   invisible(x)
 }
-
 # Convert symbolic limits to numeric (for exact result calculations only)
 parse_symbolic_limit <- function(limit_str) {
   if (limit_str == "pi") return(pi)

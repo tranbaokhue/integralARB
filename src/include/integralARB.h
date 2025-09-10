@@ -13,17 +13,13 @@ typedef int (*acb_calc_func_t)(acb_ptr, const acb_t, void*, slong, slong);
 
 // Integration result structure
 typedef struct {
-  double value;           // Double approximation of result
-  double error_bound;     // Double approximation of error bound
-  double abs_error;       // Absolute error estimate
-  double rel_error;       // Relative error estimate
-  int evaluations;        // Number of function evaluations
-  int subdivisions;       // Number of subdivisions used
+  int evaluations;        // Number of function evaluations (estimate)
+  int subdivisions;       // Number of subdivisions used (estimate)
   int status;            // Success/failure status (0 = success)
   char message[256];     // Status message
-  // High-precision string representations
+  // High-precision string representations (rigorous)
   char *value_str;       // High-precision value as string
-  char *error_str;       // High-precision error bound as string
+  char *error_str;       // Rigorous error bound as string
 } integration_result_t;
 
 // Integration parameters

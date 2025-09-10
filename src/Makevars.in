@@ -2,7 +2,7 @@ PKG_CPPFLAGS = @PKG_CFLAGS@ -I./include -DHAVE_FLINT
 PKG_LIBS = @PKG_LIBS@
 
 # C source files to compile
-OBJECTS = init.o r_interface.o integration_engine.o builtin_functions.o
+OBJECTS = init.o r_interface.o builtin_functions.o
 
 # Use C11 standard to avoid warnings about C11 extensions
 PKG_CFLAGS = -DHAVE_VISIBILITY_ATTRIBUTE
