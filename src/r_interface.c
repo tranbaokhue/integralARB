@@ -1,6 +1,9 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <math.h>
 #include "include/integralARB.h"
 
 // External functions from builtin_functions.c (now declared in header)
@@ -47,49 +50,36 @@ static void arb_to_r_strings(integration_result_t *result, const arb_t value, sl
 
 // Helper function to parse symbolic constants and expressions
 static int parse_symbolic_expression(arb_t result, const char* str, slong prec) {
+  // Handle simple constants first (fast path)
   if (strcmp(str, "pi") == 0) {
     arb_const_pi(result, prec);
     return 0;
   } else if (strcmp(str, "e") == 0) {
     arb_const_e(result, prec);
     return 0;
-  } else if (strncmp(str, "ln(", 3) == 0) {
-    // Extract number from ln(number)
-    char* end_paren = strchr(str + 3, ')');
-    if (end_paren) {
-      int len = end_paren - (str + 3);
-      char* number = malloc(len + 1);
-      strncpy(number, str + 3, len);
-      number[len] = '\0';
+  }
 
-      arb_t temp;
-      arb_init(temp);
-      if (arb_set_str(temp, number, prec) == 0) {
-        arb_log(result, temp, prec);
-        arb_clear(temp);
-        free(number);
-        return 0;
-      }
-      arb_clear(temp);
-      free(number);
-    }
-  } else if (strstr(str, "/") && !strstr(str, "x")) {
-    // Handle expressions like "pi/2", "ln(2)/2", "1/3"
-    // Use the expression parser to evaluate
+  // For any expression that doesn't contain 'x', try to evaluate it as a constant
+  if (!strstr(str, "x")) {
     parsed_expression_t* parsed = parse_mathematical_expression(str);
     if (parsed) {
       acb_t temp_result;
+      acb_t dummy_x;
       acb_init(temp_result);
-      acb_t dummy_x;  // Not used for constant expressions
       acb_init(dummy_x);
 
+      acb_zero(dummy_x);  // Won't be used for constant expressions
+
       if (evaluate_expression_tree(temp_result, parsed->terms[0].expr, dummy_x, 0, prec)) {
-        acb_get_real(result, temp_result);
-        cleanup_parsed_expression(parsed);
-        acb_clear(temp_result);
-        acb_clear(dummy_x);
-        return 0;
+        if (acb_is_real(temp_result)) {
+          acb_get_real(result, temp_result);
+          cleanup_parsed_expression(parsed);
+          acb_clear(temp_result);
+          acb_clear(dummy_x);
+          return 0;
+        }
       }
+
       cleanup_parsed_expression(parsed);
       acb_clear(temp_result);
       acb_clear(dummy_x);

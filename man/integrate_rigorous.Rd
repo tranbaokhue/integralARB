@@ -73,6 +73,7 @@ parsing and derivative computation for guaranteed accuracy.
 \item \code{log(expr)}, \code{ln(expr)} - Natural logarithm
 \item \code{sinh(expr)} - Hyperbolic sine
 \item \code{cosh(expr)} - Hyperbolic cosine
+\item \code{sqrt(expr)} - Square root function
 }
 
 \emph{Operations:}

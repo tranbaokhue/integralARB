@@ -11,37 +11,6 @@
 #include "flint/arf.h"
 
 // =============================================================================
-// TOKENIZER AND PARSER STRUCTURES
-// =============================================================================
-
-typedef enum {
-  TOKEN_NUMBER,
-  TOKEN_IDENTIFIER,
-  TOKEN_PLUS,
-  TOKEN_MINUS,
-  TOKEN_MULTIPLY,
-  TOKEN_DIVIDE,
-  TOKEN_POWER,
-  TOKEN_LPAREN,
-  TOKEN_RPAREN,
-  TOKEN_EOF,
-  TOKEN_ERROR
-} token_type_t;
-
-typedef struct {
-  token_type_t type;
-  char* value;        // String representation for all tokens
-  double pos;         // Position in input string
-} token_t;
-
-typedef struct {
-  const char* input;
-  int position;
-  int length;
-  token_t current_token;
-} tokenizer_t;
-
-// =============================================================================
 // TOKENIZER IMPLEMENTATION
 // =============================================================================
 
@@ -87,7 +56,7 @@ static char* extract_identifier(tokenizer_t* tok) {
   return result;
 }
 
-static void next_token(tokenizer_t* tok) {
+void next_token(tokenizer_t* tok) {
   if (tok->current_token.value) {
     free(tok->current_token.value);
     tok->current_token.value = NULL;
@@ -129,7 +98,7 @@ static void next_token(tokenizer_t* tok) {
   }
 }
 
-static tokenizer_t* create_tokenizer(const char* input) {
+tokenizer_t* create_tokenizer(const char* input) {
   tokenizer_t* tok = malloc(sizeof(tokenizer_t));
   tok->input = input;
   tok->position = 0;
@@ -139,7 +108,7 @@ static tokenizer_t* create_tokenizer(const char* input) {
   return tok;
 }
 
-static void free_tokenizer(tokenizer_t* tok) {
+void free_tokenizer(tokenizer_t* tok) {
   if (tok->current_token.value) {
     free(tok->current_token.value);
   }
@@ -208,6 +177,7 @@ static expression_node_t* parse_primary(tokenizer_t* tok) {
       free(identifier);
       return func_node;
     }
+    // Handle variables and constants
     else if (strcmp(identifier, "x") == 0) {
       expression_node_t* var_node = create_node(EXPR_VARIABLE, identifier);
       free(identifier);
@@ -217,29 +187,11 @@ static expression_node_t* parse_primary(tokenizer_t* tok) {
       expression_node_t* const_node = create_node(EXPR_CONSTANT, "pi");
       free(identifier);
       return const_node;
-    } else if (strcmp(identifier, "e") == 0) {
+    }
+    else if (strcmp(identifier, "e") == 0) {
       expression_node_t* const_node = create_node(EXPR_CONSTANT, "e");
       free(identifier);
       return const_node;
-    } else if (strcmp(identifier, "ln") == 0) {
-      // Handle ln(number) as a constant evaluation
-      if (tok->current_token.type == TOKEN_LPAREN) {
-        next_token(tok); // consume '('
-        if (tok->current_token.type == TOKEN_NUMBER) {
-          char* number = strdup(tok->current_token.value);
-          next_token(tok);
-          if (tok->current_token.type == TOKEN_RPAREN) {
-            next_token(tok); // consume ')'
-            char* ln_expr = malloc(strlen(number) + 10);
-            sprintf(ln_expr, "ln_%s", number);
-            expression_node_t* ln_node = create_node(EXPR_CONSTANT, ln_expr);
-            free(number);
-            free(ln_expr);
-            free(identifier);
-            return ln_node;
-          }
-        }
-      }
     }
     else {
       free(identifier);
@@ -349,7 +301,7 @@ static expression_node_t* parse_expression(tokenizer_t* tok) {
 
 static int is_supported_function(const char* name) {
   const char* supported[] = {
-    "sin", "cos", "exp", "log", "ln", "sinh", "cosh", "atan", "arctan", NULL
+    "sin", "cos", "exp", "log", "ln", "sinh", "cosh", "atan", "arctan", "sqrt", NULL
   };
 
   for (int i = 0; supported[i] != NULL; i++) {
@@ -367,6 +319,12 @@ static int validate_expression_tree(expression_node_t* node) {
   case EXPR_NUMBER:
   case EXPR_VARIABLE:
     return 1;
+  case EXPR_CONSTANT:
+    // Add debug for constants
+    if (node->value && (strcmp(node->value, "pi") == 0 || strcmp(node->value, "e") == 0)) {
+      return 1;
+    }
+    return 0;
 
   case EXPR_FUNCTION:
     if (!is_supported_function(node->value)) {
@@ -470,6 +428,23 @@ static int evaluate_function_derivative(acb_ptr result, const char* func_name, c
       acb_cosh(result, arg, prec);
     } else {
       acb_sinh(result, arg, prec);
+    }
+    return 1;
+  }
+  else if (strcmp(func_name, "sqrt") == 0) {
+    if (order == 0) {
+      acb_sqrt(result, arg, prec);
+    } else if (order == 1) {
+      // d/dx[sqrt(x)] = 1/(2*sqrt(x))
+      acb_t temp;
+      acb_init(temp);
+      acb_sqrt(temp, arg, prec);
+      acb_mul_ui(temp, temp, 2, prec);
+      acb_inv(result, temp, prec);
+      acb_clear(temp);
+    } else {
+      // Higher derivatives: d^n/dx^n[sqrt(x)] = more complex
+      acb_indeterminate(result);
     }
     return 1;
   }
@@ -598,123 +573,61 @@ int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
   case EXPR_BINARY_OP: {
     if (strcmp(node->value, "+") == 0) {
     acb_t left_val, right_val;
-    acb_init(left_val); acb_init(right_val);
+    acb_init(left_val);
+    acb_init(right_val);
 
     if (!evaluate_expression_tree(left_val, node->left, x, order, prec) ||
         !evaluate_expression_tree(right_val, node->right, x, order, prec)) {
-        acb_clear(left_val); acb_clear(right_val);
-        return 0;
+        acb_clear(left_val);
+      acb_clear(right_val);
+      return 0;
     }
 
     acb_add(result, left_val, right_val, prec);
-    acb_clear(left_val); acb_clear(right_val);
+    acb_clear(left_val);
+    acb_clear(right_val);
     return 1;
   }
     else if (strcmp(node->value, "-") == 0) {
       acb_t left_val, right_val;
-      acb_init(left_val); acb_init(right_val);
+      acb_init(left_val);
+      acb_init(right_val);
 
       if (!evaluate_expression_tree(left_val, node->left, x, order, prec) ||
           !evaluate_expression_tree(right_val, node->right, x, order, prec)) {
-          acb_clear(left_val); acb_clear(right_val);
-          return 0;
+          acb_clear(left_val);
+        acb_clear(right_val);
+        return 0;
       }
 
       acb_sub(result, left_val, right_val, prec);
-      acb_clear(left_val); acb_clear(right_val);
+      acb_clear(left_val);
+      acb_clear(right_val);
       return 1;
     }
     else if (strcmp(node->value, "*") == 0) {
       if (order == 0) {
         // Multiplication: (f * g)
         acb_t left_val, right_val;
-        acb_init(left_val); acb_init(right_val);
+        acb_init(left_val);
+        acb_init(right_val);
 
         if (!evaluate_expression_tree(left_val, node->left, x, 0, prec) ||
             !evaluate_expression_tree(right_val, node->right, x, 0, prec)) {
-            acb_clear(left_val); acb_clear(right_val);
-            return 0;
+            acb_clear(left_val);
+          acb_clear(right_val);
+          return 0;
         }
 
         acb_mul(result, left_val, right_val, prec);
-        acb_clear(left_val); acb_clear(right_val);
+        acb_clear(left_val);
+        acb_clear(right_val);
         return 1;
       }
-      else if (strcmp(node->value, "^") == 0) {
-        if (node->left->type == EXPR_VARIABLE && node->right->type == EXPR_NUMBER) {
-          // Handle x^n case
-          if (order == 0) {
-            acb_t exp_val;
-            acb_init(exp_val);
-
-            arb_t exp_arb;
-            arb_init(exp_arb);
-            arb_set_str(exp_arb, node->right->value, prec);
-            acb_set_arb(exp_val, exp_arb);
-
-            acb_pow(result, x, exp_val, prec);  // x^n
-
-            arb_clear(exp_arb);
-            acb_clear(exp_val);
-            return 1;
-          }
-          else if (order == 1) {
-            // Power rule: d/dx[x^n] = n*x^(n-1)
-            arb_t n, n_minus_1;
-            acb_t x_power;
-            arb_init(n); arb_init(n_minus_1); acb_init(x_power);
-
-            arb_set_str(n, node->right->value, prec);
-            arb_sub_ui(n_minus_1, n, 1, prec);
-
-            acb_pow_arb(x_power, x, n_minus_1, prec);  // x^(n-1)
-            acb_mul_arb(result, x_power, n, prec);     // n*x^(n-1)
-
-            arb_clear(n); arb_clear(n_minus_1); acb_clear(x_power);
-            return 1;
-          }
-        }
-      }
-      else if (strcmp(node->value, "/") == 0) {
-        if (order == 0) {
-          // General division: a/b
-          acb_t left_val, right_val;
-          acb_init(left_val); acb_init(right_val);
-
-          if (!evaluate_expression_tree(left_val, node->left, x, 0, prec) ||
-              !evaluate_expression_tree(right_val, node->right, x, 0, prec)) {
-              acb_clear(left_val); acb_clear(right_val);
-              return 0;
-          }
-
-          acb_div(result, left_val, right_val, prec);
-          acb_clear(left_val); acb_clear(right_val);
-          return 1;
-        }
-        else if (order == 1) {
-          // Only 1/x derivative supported
-          if (node->left->type == EXPR_NUMBER &&
-              strcmp(node->left->value, "1") == 0 &&
-              node->right->type == EXPR_VARIABLE) {
-
-            acb_t x_squared;
-            acb_init(x_squared);
-            acb_mul(x_squared, x, x, prec);
-            acb_inv(result, x_squared, prec);
-            acb_neg(result, result);
-            acb_clear(x_squared);
-            return 1;
-          } else {
-            acb_indeterminate(result);
-            return 0;
-          }
-        }
-      }
-
       else if (order == 1) {
         // SPECIAL CASE: c*f(x) where c is constant
         if (node->left->type == EXPR_NUMBER &&
-            node->right->type == EXPR_FUNCTION) {
+            (node->right->type == EXPR_FUNCTION || node->right->type == EXPR_VARIABLE)) {
 
           arb_t coeff;
           acb_t func_derivative;
@@ -735,9 +648,8 @@ int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
           acb_clear(func_derivative);
           return 1;
         }
-
         // SPECIAL CASE: f(x)*c where c is constant
-        else if (node->left->type == EXPR_FUNCTION &&
+        else if ((node->left->type == EXPR_FUNCTION || node->left->type == EXPR_VARIABLE) &&
                  node->right->type == EXPR_NUMBER) {
 
           arb_t coeff;
@@ -759,7 +671,6 @@ int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
           acb_clear(func_derivative);
           return 1;
         }
-
         // GENERAL CASE: Product rule (f*g)' = f'*g + f*g'
         else {
           acb_t f, g, f_prime, g_prime, term1, term2;
@@ -790,29 +701,97 @@ int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
         return 0;
       }
     }
-    else if (strcmp(node->value, "^") == 0) {
-      // Handle simple cases like x^n where n is a constant
+    else if (strcmp(node->value, "/") == 0) {
       if (order == 0) {
+        // General division: a/b
+        acb_t left_val, right_val;
+        acb_init(left_val);
+        acb_init(right_val);
+
+        if (!evaluate_expression_tree(left_val, node->left, x, 0, prec) ||
+            !evaluate_expression_tree(right_val, node->right, x, 0, prec)) {
+            acb_clear(left_val);
+          acb_clear(right_val);
+          return 0;
+        }
+
+        acb_div(result, left_val, right_val, prec);
+        acb_clear(left_val);
+        acb_clear(right_val);
+        return 1;
+      }
+      else if (order == 1) {
+        // Only 1/x derivative supported for now
+        if (node->left->type == EXPR_NUMBER &&
+            strcmp(node->left->value, "1") == 0 &&
+            node->right->type == EXPR_VARIABLE) {
+
+          acb_t x_squared;
+          acb_init(x_squared);
+          acb_mul(x_squared, x, x, prec);
+          acb_inv(result, x_squared, prec);
+          acb_neg(result, result);  // d/dx[1/x] = -1/x^2
+          acb_clear(x_squared);
+          return 1;
+        } else {
+          acb_indeterminate(result);
+          return 0;
+        }
+      }
+      else {
+        // Higher order division derivatives not implemented
+        acb_indeterminate(result);
+        return 0;
+      }
+    }
+    else if (strcmp(node->value, "^") == 0) {
+      if (order == 0) {
+        // General exponentiation: a^b
         acb_t base_val, exp_val;
-        acb_init(base_val); acb_init(exp_val);
+        acb_init(base_val);
+        acb_init(exp_val);
 
         if (!evaluate_expression_tree(base_val, node->left, x, 0, prec) ||
             !evaluate_expression_tree(exp_val, node->right, x, 0, prec)) {
-            acb_clear(base_val); acb_clear(exp_val);
-            return 0;
+            acb_clear(base_val);
+          acb_clear(exp_val);
+          return 0;
         }
 
         acb_pow(result, base_val, exp_val, prec);
-        acb_clear(base_val); acb_clear(exp_val);
+        acb_clear(base_val);
+        acb_clear(exp_val);
         return 1;
-      } else {
-        // Power rule derivatives are complex - not implemented
+      }
+      else if (order == 1) {
+        // Power rule for x^n where n is constant
+        if (node->left->type == EXPR_VARIABLE && node->right->type == EXPR_NUMBER) {
+          arb_t n, n_minus_1;
+          acb_t x_power;
+          arb_init(n); arb_init(n_minus_1); acb_init(x_power);
+
+          arb_set_str(n, node->right->value, prec);
+          arb_sub_ui(n_minus_1, n, 1, prec);
+
+          acb_pow_arb(x_power, x, n_minus_1, prec);  // x^(n-1)
+          acb_mul_arb(result, x_power, n, prec);     // n*x^(n-1)
+
+          arb_clear(n); arb_clear(n_minus_1); acb_clear(x_power);
+          return 1;
+        } else {
+          // General power rule derivatives are complex - not implemented
+          acb_indeterminate(result);
+          return 0;
+        }
+      }
+      else {
+        // Higher order power derivatives not implemented
         acb_indeterminate(result);
         return 0;
       }
     }
     else {
-      // Other operators not supported
+      // Unknown binary operator
       acb_indeterminate(result);
       return 0;
     }
@@ -840,14 +819,6 @@ int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
       arb_const_e(e_val, prec);
       acb_set_arb(result, e_val);
       arb_clear(e_val);
-    } else if (strncmp(node->value, "ln_", 3) == 0) {
-      // Handle ln(number)
-      arb_t num_val, ln_val;
-      arb_init(num_val); arb_init(ln_val);
-      arb_set_str(num_val, &node->value[3], prec); // Skip "ln_"
-      arb_log(ln_val, num_val, prec);
-      acb_set_arb(result, ln_val);
-      arb_clear(num_val); arb_clear(ln_val);
     }
   } else {
     acb_zero(result); // Constants have zero derivative
@@ -882,6 +853,7 @@ int parsed_expression_integrand(acb_ptr res, const acb_t z, void* param, slong o
 parsed_expression_t* parse_mathematical_expression(const char* expression) {
   tokenizer_t* tok = create_tokenizer(expression);
   expression_node_t* tree = parse_expression(tok);
+
 
   if (!tree || !validate_expression_tree(tree)) {
     free_tokenizer(tok);
@@ -937,10 +909,11 @@ void list_builtin_functions(char* buffer, size_t buffer_size) {
   snprintf(buffer, buffer_size,
            "Supported mathematical expressions:\n"
            "Variables: x\n"
-           "Functions: sin(expr), cos(expr), exp(expr), log(expr), ln(expr), sinh(expr), cosh(expr), atan(expr)\n"
+           "Functions: sin(expr), cos(expr), exp(expr), log(expr), ln(expr), sinh(expr), cosh(expr), atan(expr), sqrt(expr)\n"
            "  where expr can be: x, 2*x, -x, etc.\n"
-           "Operations: +, -, *, ^, ()\n"
-           "Numbers: Any decimal number (use strings for high precision)\n"
-           "Examples: 'sin(2*x)', 'cos(x) + exp(-x)', 'atan(x)', '2*sinh(x) - x'\n"
+           "Operations: +, -, *, ^\n"
+           "Constants: pi, e, ln(number)\n"
+           "Numbers: Any decimal number (use fractional string format for high precision)\n"
+           "Examples: 'sin(2*x)', 'cos(x) + exp(-x)', 'atan(x)', '2*sinh(x) - x', 'sqrt(x)'\n"
            "Chain rule: First derivatives supported for f(g(x)) where g(x) is simple\n");
 }

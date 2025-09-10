@@ -43,6 +43,7 @@
 #' - `log(expr)`, `ln(expr)` - Natural logarithm
 #' - `sinh(expr)` - Hyperbolic sine
 #' - `cosh(expr)` - Hyperbolic cosine
+#' - `sqrt(expr)` - Square root function
 #'
 #' *Operations:*
 #' - `+`, `-` - Addition, subtraction
@@ -297,26 +298,30 @@ print.rigorous_result <- function(x, digits = 15, show_string = TRUE,
   invisible(x)
 }
 
-# Convert symbolic limits to numeric
+# Convert symbolic limits to numeric (for exact result calculations only)
 parse_symbolic_limit <- function(limit_str) {
   if (limit_str == "pi") return(pi)
   if (limit_str == "e") return(exp(1))
-  if (grepl("^ln\\(", limit_str)) {
-    num_str <- sub("ln\\(([^)]+)\\)", "\\1", limit_str)
-    return(log(as.numeric(num_str)))
-  }
-  if (grepl("/", limit_str) && !grepl("x", limit_str)) {
-    parts <- strsplit(limit_str, "/")[[1]]
-    return(as.numeric(parts[1]) / as.numeric(parts[2]))
-  }
-  if (grepl("pi/", limit_str)) {
-    divisor <- sub("pi/", "", limit_str)
-    return(pi / as.numeric(divisor))
-  }
-  return(as.numeric(limit_str))
+
+  # For complex expressions, try to evaluate them in R
+  tryCatch({
+    # Replace mathematical constants
+    expr_str <- limit_str
+    expr_str <- gsub("\\bpi\\b", "pi", expr_str)
+    expr_str <- gsub("\\be\\b", "exp(1)", expr_str)
+    expr_str <- gsub("\\bln\\(", "log(", expr_str)
+    expr_str <- gsub("\\bsqrt\\(", "sqrt(", expr_str)
+
+    # Evaluate the expression
+    eval(parse(text = expr_str))
+  }, error = function(e) {
+    # If R evaluation fails, try as numeric
+    tryCatch(as.numeric(limit_str), error = function(e) NA)
+  })
 }
 
-#' Get exact analytical result for known integrals
+
+#' Get exact analytical result for known integrals (generalized version)
 #'
 #' Returns the exact analytical value for definite integrals when known.
 #' Useful for validating numerical integration results.
@@ -326,13 +331,6 @@ parse_symbolic_limit <- function(limit_str) {
 #' @param b Upper limit (character string)
 #' @return Exact value if known, NA otherwise
 #' @export
-#' @examples
-#' \dontrun{
-#' # Known exact results
-#' get_exact_result("sin(x)", "0", "3.14159265358979323846")  # Should be 2
-#' get_exact_result("cos(x)", "0", "1.5707963267948966")      # Should be 1
-#' get_exact_result("exp(x)", "0", "1")                       # Should be e-1
-#' }
 get_exact_result <- function(expression, a, b) {
   # Parse symbolic limits
   a_num <- tryCatch(parse_symbolic_limit(a), error = function(e) as.numeric(a))
@@ -342,48 +340,166 @@ get_exact_result <- function(expression, a, b) {
     return(NA)
   }
 
-  # Known exact results for common expressions
-  if (expression == "sin(x)") {
+  # Remove spaces for easier pattern matching
+  expr_clean <- gsub("\\s+", "", expression)
+
+  # Pattern matching for different expression types
+
+  # 1. Simple functions
+  if (expr_clean == "sin(x)") {
     return(-cos(b_num) + cos(a_num))
-  } else if (expression == "cos(x)") {
+  } else if (expr_clean == "cos(x)") {
     return(sin(b_num) - sin(a_num))
-  } else if (expression == "atan(x)" || expression == "arctan(x)") {
+  } else if (expr_clean == "exp(x)") {
+    return(exp(b_num) - exp(a_num))
+  } else if (expr_clean == "sinh(x)") {
+    return(cosh(b_num) - cosh(a_num))
+  } else if (expr_clean == "cosh(x)") {
+    return(sinh(b_num) - sinh(a_num))
+  } else if (expr_clean == "atan(x)" || expr_clean == "arctan(x)") {
     # ∫ atan(x) dx = x*atan(x) - ln(1+x²)/2 + C
-    # For definite integral [a,b]: complex but computable
     b_val <- b_num * atan(b_num) - log(1 + b_num^2)/2
     a_val <- a_num * atan(a_num) - log(1 + a_num^2)/2
     return(b_val - a_val)
+  } else if (expr_clean == "sqrt(x)") {
+    # ∫ sqrt(x) dx = (2/3) * x^(3/2) + C
+    return((2/3) * (b_num^(3/2) - a_num^(3/2)))
   }
-  else if (expression == "exp(x)") {
-    return(exp(b_num) - exp(a_num))
-  } else if (expression == "exp(-x)") {
+
+  # 2. Scaled trigonometric functions: sin(c*x), cos(c*x)
+  sin_match <- regexpr("^sin\\(([+-]?[0-9]*\\.?[0-9]*(?:[eE][+-]?[0-9]+)?)\\*x\\)$", expr_clean, perl = TRUE)
+  if (sin_match != -1) {
+    coeff_str <- regmatches(expr_clean, sin_match, invert = FALSE)
+    coeff_str <- gsub("^sin\\(|\\*x\\)$", "", coeff_str)
+    if (coeff_str == "" || coeff_str == "+") coeff_str <- "1"
+    if (coeff_str == "-") coeff_str <- "-1"
+
+    coeff <- tryCatch(as.numeric(coeff_str), error = function(e) NA)
+    if (!is.na(coeff)) {
+      # ∫ sin(c*x) dx = -cos(c*x)/c + C
+      return((-cos(coeff * b_num) + cos(coeff * a_num)) / coeff)
+    }
+  }
+
+  cos_match <- regexpr("^cos\\(([+-]?[0-9]*\\.?[0-9]*(?:[eE][+-]?[0-9]+)?)\\*x\\)$", expr_clean, perl = TRUE)
+  if (cos_match != -1) {
+    coeff_str <- regmatches(expr_clean, cos_match, invert = FALSE)
+    coeff_str <- gsub("^cos\\(|\\*x\\)$", "", coeff_str)
+    if (coeff_str == "" || coeff_str == "+") coeff_str <- "1"
+    if (coeff_str == "-") coeff_str <- "-1"
+
+    coeff <- tryCatch(as.numeric(coeff_str), error = function(e) NA)
+    if (!is.na(coeff)) {
+      # ∫ cos(c*x) dx = sin(c*x)/c + C
+      return((sin(coeff * b_num) - sin(coeff * a_num)) / coeff)
+    }
+  }
+
+  # 3. Scaled exponential functions: exp(c*x), exp(-x), etc.
+  exp_match <- regexpr("^exp\\(([+-]?[0-9]*\\.?[0-9]*(?:[eE][+-]?[0-9]+)?)\\*x\\)$", expr_clean, perl = TRUE)
+  if (exp_match != -1) {
+    coeff_str <- regmatches(expr_clean, exp_match, invert = FALSE)
+    coeff_str <- gsub("^exp\\(|\\*x\\)$", "", coeff_str)
+    if (coeff_str == "" || coeff_str == "+") coeff_str <- "1"
+    if (coeff_str == "-") coeff_str <- "-1"
+
+    coeff <- tryCatch(as.numeric(coeff_str), error = function(e) NA)
+    if (!is.na(coeff)) {
+      # ∫ exp(c*x) dx = exp(c*x)/c + C
+      return((exp(coeff * b_num) - exp(coeff * a_num)) / coeff)
+    }
+  }
+
+  # Handle exp(-x) specifically (common case)
+  if (expr_clean == "exp(-x)") {
     return(exp(-a_num) - exp(-b_num))
-  } else if (expression == "x") {
-    return((b_num^2 - a_num^2) / 2)
-  } else if (expression == "x^2") {
-    return((b_num^3 - a_num^3) / 3)
-  } else if (expression == "sinh(x)") {
-    return(cosh(b_num) - cosh(a_num))
-  } else if (expression == "cosh(x)") {
-    return(sinh(b_num) - sinh(a_num))
-  } else if (expression == "sin(2*x)") {
-    return((-cos(2*b_num) + cos(2*a_num)) / 2)
-  } else if (expression == "cos(2*x)") {
-    return((sin(2*b_num) - sin(2*a_num)) / 2)
-  } else if (grepl("^x\\^[0-9]+$", expression)) {
-  n <- as.numeric(sub("x\\^", "", expression))
-  return((b_num^(n+1) - a_num^(n+1)) / (n+1))
-  } else if (expression == "1/x") {
-  return(log(b_num) - log(a_num))
   }
-  # Special case: arctangent integral
-  if (expression == "1/(1+x^2)" || expression == "1/(1+x*x)") {
+
+  # 4. General polynomials: x^n for any real n
+  poly_match <- regexpr("^x\\^([+-]?[0-9]*\\.?[0-9]*(?:[eE][+-]?[0-9]+)?)$", expr_clean, perl = TRUE)
+  if (poly_match != -1) {
+    power_str <- regmatches(expr_clean, poly_match, invert = FALSE)
+    power_str <- gsub("^x\\^", "", power_str)
+
+    power <- tryCatch(as.numeric(power_str), error = function(e) NA)
+    if (!is.na(power) && power != -1) {
+      # ∫ x^n dx = x^(n+1)/(n+1) + C  (for n ≠ -1)
+      return((b_num^(power + 1) - a_num^(power + 1)) / (power + 1))
+    }
+  }
+
+  # Handle simple cases: x, x^2, x^3, etc.
+  if (expr_clean == "x") {
+    return((b_num^2 - a_num^2) / 2)
+  }
+
+  # 5. Scaled polynomials: c*x^n
+  scaled_poly_match <- regexpr("^([+-]?[0-9]*\\.?[0-9]*(?:[eE][+-]?[0-9]+)?)\\*x(?:\\^([+-]?[0-9]*\\.?[0-9]*(?:[eE][+-]?[0-9]+)?))?$", expr_clean, perl = TRUE)
+  if (scaled_poly_match != -1) {
+    match_groups <- regmatches(expr_clean, scaled_poly_match, invert = FALSE)
+
+    # Extract coefficient and power
+    parts <- strsplit(gsub("\\*x", "", match_groups), "\\^")[[1]]
+    coeff_str <- parts[1]
+    power_str <- if (length(parts) > 1) parts[2] else "1"
+
+    if (coeff_str == "" || coeff_str == "+") coeff_str <- "1"
+    if (coeff_str == "-") coeff_str <- "-1"
+
+    coeff <- tryCatch(as.numeric(coeff_str), error = function(e) NA)
+    power <- tryCatch(as.numeric(power_str), error = function(e) 1)
+
+    if (!is.na(coeff) && !is.na(power) && power != -1) {
+      # ∫ c*x^n dx = c*x^(n+1)/(n+1) + C
+      return(coeff * (b_num^(power + 1) - a_num^(power + 1)) / (power + 1))
+    }
+  }
+
+  # 6. Reciprocal functions
+  if (expr_clean == "1/x") {
+    return(log(b_num) - log(a_num))
+  }
+
+  # 7. Special reciprocal cases: 1/(1+x^2), etc.
+  if (expr_clean == "1/(1+x^2)" || expr_clean == "1/(1+x*x)") {
     return(atan(b_num) - atan(a_num))
+  }
+
+  # 8. Scaled functions with constants: c*sin(x), c*cos(x), etc.
+  const_func_match <- regexpr("^([+-]?[0-9]*\\.?[0-9]*(?:[eE][+-]?[0-9]+)?)\\*([a-zA-Z]+)\\(x\\)$", expr_clean, perl = TRUE)
+  if (const_func_match != -1) {
+    match_str <- regmatches(expr_clean, const_func_match, invert = FALSE)
+
+    # Extract coefficient and function
+    star_pos <- regexpr("\\*", match_str)
+    coeff_str <- substr(match_str, 1, star_pos - 1)
+    func_part <- substr(match_str, star_pos + 1, nchar(match_str))
+    func_name <- gsub("\\(x\\)$", "", func_part)
+
+    if (coeff_str == "" || coeff_str == "+") coeff_str <- "1"
+    if (coeff_str == "-") coeff_str <- "-1"
+
+    coeff <- tryCatch(as.numeric(coeff_str), error = function(e) NA)
+
+    if (!is.na(coeff)) {
+      if (func_name == "sin") {
+        return(coeff * (-cos(b_num) + cos(a_num)))
+      } else if (func_name == "cos") {
+        return(coeff * (sin(b_num) - sin(a_num)))
+      } else if (func_name == "exp") {
+        return(coeff * (exp(b_num) - exp(a_num)))
+      } else if (func_name == "sinh") {
+        return(coeff * (cosh(b_num) - cosh(a_num)))
+      } else if (func_name == "cosh") {
+        return(coeff * (sinh(b_num) - sinh(a_num)))
+      } else if (func_name == "sqrt") {
+        return(coeff * (2/3) * (b_num^(3/2) - a_num^(3/2)))
+      }
+    }
   }
 
   return(NA)
 }
-
 #' Compare numerical result with exact analytical result
 #'
 #' Compares the numerical integration result with the known exact value

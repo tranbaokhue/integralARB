@@ -8,6 +8,9 @@
 #include "flint/acb.h"
 #include "flint/acb_calc.h"
 
+// Forward declaration for ACB calc function type
+typedef int (*acb_calc_func_t)(acb_ptr, const acb_t, void*, slong, slong);
+
 // Integration result structure
 typedef struct {
   double value;           // Double approximation of result
@@ -33,13 +36,6 @@ typedef struct {
   int verbose;           // Verbose output flag
 } integration_params_t;
 
-// Function type definitions
-typedef enum {
-  INTEGRAND_EXPRESSION,   // String expression (current)
-  INTEGRAND_R_FUNCTION,   // R function object (deprecated)
-  INTEGRAND_BUILTIN      // Built-in optimized function
-} integrand_type_t;
-
 // Built-in function entry structure
 typedef struct {
   const char* name;
@@ -49,6 +45,13 @@ typedef struct {
   const char* exact_antiderivative;
 } builtin_function_entry_t;
 
+// Function type definitions
+typedef enum {
+  INTEGRAND_EXPRESSION,   // String expression (current)
+  INTEGRAND_R_FUNCTION,   // R function object (deprecated)
+  INTEGRAND_BUILTIN      // Built-in optimized function
+} integrand_type_t;
+
 // Integrand structure
 typedef struct {
   integrand_type_t type;
@@ -56,6 +59,34 @@ typedef struct {
   SEXP r_function;         // R function (deprecated)
   acb_calc_func_t builtin_func; // Built-in function pointer
 } integrand_t;
+
+// Tokenizer types (needed for debugging)
+typedef enum {
+  TOKEN_NUMBER,
+  TOKEN_IDENTIFIER,
+  TOKEN_PLUS,
+  TOKEN_MINUS,
+  TOKEN_MULTIPLY,
+  TOKEN_DIVIDE,
+  TOKEN_POWER,
+  TOKEN_LPAREN,
+  TOKEN_RPAREN,
+  TOKEN_EOF,
+  TOKEN_ERROR
+} token_type_t;
+
+typedef struct {
+  token_type_t type;
+  char* value;
+  double pos;
+} token_t;
+
+typedef struct {
+  const char* input;
+  int position;
+  int length;
+  token_t current_token;
+} tokenizer_t;
 
 // Expression parser types - exposed from builtin_functions.c
 typedef enum {
@@ -87,6 +118,11 @@ typedef struct {
   char* original_expression;
 } parsed_expression_t;
 
+// Tokenizer function declarations (for debugging)
+tokenizer_t* create_tokenizer(const char* input);
+void free_tokenizer(tokenizer_t* tok);
+void next_token(tokenizer_t* tok);
+
 // Function declarations
 integration_result_t perform_integration(integrand_t* integrand,
                                          double a, double b,
@@ -103,7 +139,7 @@ int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
                              const acb_t x, slong order, slong prec);
 
 // Built-in function declarations
-extern const builtin_function_entry_t* find_builtin_function(const char* name);
-extern void list_builtin_functions(char* buffer, size_t buffer_size);
+const builtin_function_entry_t* find_builtin_function(const char* name);
+void list_builtin_functions(char* buffer, size_t buffer_size);
 
 #endif // INTEGRALARB_H

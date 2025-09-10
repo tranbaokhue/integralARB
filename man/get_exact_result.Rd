@@ -2,7 +2,7 @@
 % Please edit documentation in R/integrate_rigorous.R
 \name{get_exact_result}
 \alias{get_exact_result}
-\title{Get exact analytical result for known integrals}
+\title{Get exact analytical result for known integrals (generalized version)}
 \usage{
 get_exact_result(expression, a, b)
 }
@@ -19,12 +19,4 @@ Exact value if known, NA otherwise
 \description{
 Returns the exact analytical value for definite integrals when known.
 Useful for validating numerical integration results.
-}
-\examples{
-\dontrun{
-# Known exact results
-get_exact_result("sin(x)", "0", "3.14159265358979323846")  # Should be 2
-get_exact_result("cos(x)", "0", "1.5707963267948966")      # Should be 1
-get_exact_result("exp(x)", "0", "1")                       # Should be e-1
-}
 }
