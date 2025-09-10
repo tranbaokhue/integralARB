@@ -9,15 +9,15 @@ name: R-CMD-check
 jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
-
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
 
     strategy:
-  matrix:
-    config:
-      - {os: macOS-latest,   r: 'release'}
-      - {os: ubuntu-latest,  r: 'release'}
-      # Remove Windows line
+      fail-fast: false
+      matrix:
+        config:
+          - {os: macOS-latest,   r: 'release'}
+          - {os: ubuntu-latest,   r: 'devel'}
+          - {os: ubuntu-latest,   r: 'release'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -25,13 +25,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
       - uses: r-lib/actions/setup-pandoc@v2
-
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: ${{ matrix.config.r }}
-          http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
       - name: Install system dependencies (Linux)
@@ -51,6 +48,3 @@ jobs:
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
-        with:
-          upload-snapshots: true
-
