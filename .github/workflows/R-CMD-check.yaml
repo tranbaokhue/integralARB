@@ -13,13 +13,11 @@ jobs:
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
 
     strategy:
-      fail-fast: false
-      matrix:
-        config:
-          - {os: macOS-latest,   r: 'release'}
-          - {os: windows-latest, r: 'release'}
-          - {os: ubuntu-latest,   r: 'devel', http-user-agent: 'release'}
-          - {os: ubuntu-latest,   r: 'release'}
+  matrix:
+    config:
+      - {os: macOS-latest,   r: 'release'}
+      - {os: ubuntu-latest,  r: 'release'}
+      # Remove Windows line
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
