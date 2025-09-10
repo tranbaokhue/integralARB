@@ -1,11 +1,32 @@
-Here's a comprehensive README for your integralARB package:
-
-```markdown
 # integralARB
 
 [![R-CMD-check](https://github.com/tranbaokhue/integralARB/workflows/R-CMD-check/badge.svg)](https://github.com/tranbaokhue/integralARB/actions)
 
 Rigorous numerical integration for mathematical functions using ball arithmetic with mathematically guaranteed error bounds. Based on the FLINT/ARB library for arbitrary-precision computation.
+
+## Table of Contents
+
+- [Features](#features)
+- [System Requirements](#system-requirements)
+  - [Linux (Ubuntu/Debian)](#linux-ubuntudebian)
+  - [Linux (CentOS/RHEL/Fedora)](#linux-centosrhelfedora)
+  - [macOS](#macos)
+  - [Windows](#windows)
+- [R Package Installation](#r-package-installation)
+- [Quick Start](#quick-start)
+- [Supported Mathematical Expressions](#supported-mathematical-expressions)
+  - [Functions](#functions)
+  - [Operations](#operations)
+  - [Constants](#constants)
+  - [Chain Rule Support](#chain-rule-support)
+- [Examples](#examples)
+- [Precision and Error Bounds](#precision-and-error-bounds)
+- [Troubleshooting](#troubleshooting)
+  - [Common Issues](#common-issues)
+  - [Getting Help](#getting-help)
+- [License](#license)
+- [Citation](#citation)
+- [References](#references)
 
 ## Features
 
@@ -190,17 +211,10 @@ This package is licensed under LGPL-3. It uses the FLINT library, which is also 
 
 ## Citation
 
-If you use this package in academic work, please cite:
-
-```
 Tran, B.K. (2024). integralARB: Rigorous Numerical Integration using ARB Library. 
 R package version 0.1.0. https://github.com/tranbaokhue/integralARB
-```
 
 ## References
 
 - Johansson, F. (2017). Arb: Efficient Arbitrary-Precision Midpoint-Radius Interval Arithmetic. IEEE Transactions on Computers.
 - FLINT Development Team. FLINT: Fast Library for Number Theory. https://flintlib.org/
-```
-
-This README provides comprehensive installation instructions for all major platforms while highlighting the key features and capabilities of your package.
