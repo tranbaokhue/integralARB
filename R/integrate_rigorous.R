@@ -231,7 +231,7 @@ print.rigorous_result <- function(x, show_call = FALSE, ...) {
       cat("  ", x$value_str, "\n")
       if (!is.null(x$error_bound) && nchar(x$error_bound) > 0) {
         cat("Rigorous error bound:\n")
-        cat("  \U+00B1", x$error_bound, "\n")
+        cat("  \u00b1", x$error_bound, "\n")
       }
     } else {
       cat("Value: [high-precision string not available]\n")
@@ -243,7 +243,7 @@ print.rigorous_result <- function(x, show_call = FALSE, ...) {
       if (!is.na(error_num) && error_num > 0) {
         accuracy_digits <- -log10(error_num)
         if (accuracy_digits > 0) {
-          cat("Guaranteed accuracy: \U+2265", floor(accuracy_digits), " decimal digits\n")
+          cat("Guaranteed accuracy: \u2265", floor(accuracy_digits), " decimal digits\n")
         }
       }
     }

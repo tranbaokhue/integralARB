@@ -4,17 +4,14 @@ Version: 0.1.0
 Authors@R: c(
     person("Bao Khue", "Tran", email = "khuebtran03@gmail.com", role = c("cre", "aut")),
     person("FLINT Contributors", role = "cph", comment = "Uses FLINT library"))
-Description: Performs rigorous numerical integration using ball arithmetic with 
-    mathematically guaranteed error bounds. Handles pathological functions that 
-    break standard quadrature methods. Based on the FLINT/ARB library.
+Description: Performs rigorous numerical integration for common functions using ball arithmetic with mathematically guaranteed error bounds. Based on the FLINT/ARB library.
 License: LGPL-3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Depends: R (>= 3.5.0)
-Imports: methods
 Suggests: testthat (>= 3.0.0), knitr, rmarkdown
 VignetteBuilder: knitr
 URL: https://github.com/tranbaokhue/integralARB
 BugReports: https://github.com/tranbaokhue/integralARB/issues
-SystemRequirements: FLINT library (>= 3.0), GMP library, MPFR library
+SystemRequirements: FLINT library (>= 2.8.0), GMP, MPFR. See README for platform-specific installation instructions.

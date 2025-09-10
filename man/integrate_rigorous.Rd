@@ -87,7 +87,7 @@ parsing and derivative computation for guaranteed accuracy.
 
 \emph{Constants:}
 \itemize{
-\item \code{pi} - Mathematical constant π with full ARB precision
+\item \code{pi} - Mathematical constant pi with full ARB precision
 \item \code{e} - Mathematical constant e with full ARB precision
 \item \code{ln(n)} - Natural logarithm of number n
 }
@@ -129,69 +129,38 @@ are not yet implemented.
 
 \examples{
 \dontrun{
-# Example 1: Basic trigonometric integral ∫₀^π sin(x) dx = 2
-result1 <- integrate_rigorous("sin(x)", "0", "3.14159265358979323846")
+# Example 1: Basic trigonometric integral - sine
+result1 <- integrate_rigorous("sin(x)", "0", "pi")
 print(result1)
 cat("High precision result:", result1$value_str, "\n")
 
-# Example 2: Chain rule - sine with scaling ∫₀^π sin(2*x) dx = 1
-result2 <- integrate_rigorous("sin(2*x)", "0", "3.14159265358979323846")
+# Example 2: Chain rule - sine with scaling
+result2 <- integrate_rigorous("sin(2*x)", "0", "pi/2")
 print(result2)
 
-# Example 3: Exponential decay ∫₀^1 exp(-x) dx = 1 - 1/e
+# Example 3: Chain rule - atan with scaling
 result3 <- integrate_rigorous("exp(-x)", "0", "1")
 print(result3)
 
-# Example 4: Polynomial ∫₀^1 x^2 dx = 1/3
-result4 <- integrate_rigorous("x^2", "0", "1")
+# Example 4: Hyperbolic
+result4 <- integrate_rigorous("sinh(x)", "0", "1")
 print(result4)
 
-# Example 5: Complex expression with addition
-result5 <- integrate_rigorous("sin(x) + cos(x)", "0", "1.5707963267948966")
+# Example 5: Polynomial
+result5 <- integrate_rigorous("x^(10)", "-6", "6")
 print(result5)
 
-# Example 6: High precision with string endpoints
-result6 <- integrate_rigorous("cos(3*x)",
-                             "0",
-                             "1.047197551196597746154214461093167628066",
-                             precision = 256)
-cat("256-bit result:", result6$value_str, "\n")
+# Example 6:Log
+result6 <- integrate_rigorous("ln(x)", "0.01", "0.1")
+print(result6)
 
-# Example 7: Hyperbolic functions ∫₀^1 sinh(x) dx = cosh(1) - 1
-result7 <- integrate_rigorous("sinh(x)", "0", "1")
+# Example 7: Exponential
+result7 <- integrate_rigorous("2 * exp(3 * x)", "0", "ln(2)")
 print(result7)
 
-# Example 8: Logarithmic integral ∫₁^e log(x) dx = 1
-result8 <- integrate_rigorous("log(x)", "1", "2.718281828459045235360287471352662498")
+# Example 8: Sum
+result8 <- integrate_rigorous("2 * sin(2 * x) + 2 * exp(x * 3)", "-pi/6", "pi/3")
 print(result8)
-
-# Example 9: Product expression ∫₀^1 2*sin(x) dx
-result9 <- integrate_rigorous("2*sin(x)", "0", "3.14159265358979323846")
-print(result9)
-
-# Example 10: Verify against known result
-arctangent_result <- integrate_rigorous("atan(x)", "0", "1")
-print(result10)
-
-# Example 11: Arctangent integral ∫₀¹ atan(x) dx ≈ π/4 - ln(2)/2
-result11 <- integrate_rigorous("atan(x)", "0", "1")
-print(result11)
-
-# Example 12: Arctangent with scaling ∫₀¹ atan(2*x) dx
-result12 <- integrate_rigorous("atan(2*x)", "0", "1")
-print(result12)
-
-# Example 13: Polynomial integral ∫₀¹ x² dx = 1/3
-result13 <- integrate_rigorous("x^2", "0", "1")
-print(result13)
-
-# Example 14: Higher order polynomial ∫₀¹ x³ dx = 1/4
-result14 <- integrate_rigorous("x^3", "0", "1")
-print(result14)
-
-# Example 15: Reciprocal integral ∫₁² 1/x dx = ln(2)
-result15 <- integrate_rigorous("1/x", "1", "2")
-print(result15)
 }
 }
 \references{

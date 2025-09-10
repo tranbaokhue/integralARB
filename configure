@@ -1,92 +1,48 @@
 #!/bin/sh
-echo "Configuring integralARB package..."
-echo "================================="
 
-# Function to check for library and headers
-check_library() {
-    local lib_name=$1
-    local header_file=$2
-    local found=0
+echo "Configuring integralARB..."
 
-    echo "Checking for $lib_name..."
-
-    # Check common installation paths
-    for prefix in /opt/homebrew /usr/local /usr; do
-        if [ -f "$prefix/include/$header_file" ]; then
-            echo "  Headers found at: $prefix/include/"
-            if [ -f "$prefix/lib/lib${lib_name}.dylib" ] || [ -f "$prefix/lib/lib${lib_name}.so" ] || [ -f "$prefix/lib/lib${lib_name}.a" ]; then
-                echo "  Library found at: $prefix/lib/"
-                FOUND_PREFIX="$prefix"
-                found=1
-                break
-            fi
-        fi
-    done
-
-    if [ $found -eq 0 ]; then
-        echo "  ❌ $lib_name not found"
-        return 1
-    else
-        echo "  ✅ $lib_name found"
-        return 0
-    fi
-}
-
-# Check required libraries
-FLINT_OK=0
-GMP_OK=0
-MPFR_OK=0
-PKG_CFLAGS=""
+PKG_CPPFLAGS=""
 PKG_LIBS=""
 
-if check_library "flint" "flint/flint.h"; then
-    FLINT_OK=1
-    PKG_CFLAGS="-I${FOUND_PREFIX}/include"
-    PKG_LIBS="-L${FOUND_PREFIX}/lib -lflint"
+# First try pkg-config
+if command -v pkg-config >/dev/null 2>&1; then
+    if pkg-config --exists flint 2>/dev/null; then
+        echo "Found FLINT via pkg-config"
+        PKG_CPPFLAGS="`pkg-config --cflags flint` -I./include -DHAVE_FLINT"
+        PKG_LIBS="`pkg-config --libs flint`"
+    fi
 fi
 
-if check_library "gmp" "gmp.h"; then
-    GMP_OK=1
-    PKG_LIBS="${PKG_LIBS} -lgmp"
+# Manual detection if pkg-config failed
+if test -z "$PKG_CPPFLAGS"; then
+    echo "Trying manual detection..."
+
+    for prefix in /opt/homebrew /usr/local /opt/local /usr; do
+        if test -f "$prefix/include/flint/flint.h"; then
+            echo "Found FLINT in $prefix"
+            PKG_CPPFLAGS="-I$prefix/include -I./include -DHAVE_FLINT"
+            PKG_LIBS="-L$prefix/lib -lflint -lgmp -lmpfr -lm"
+            break
+        fi
+    done
 fi
 
-if check_library "mpfr" "mpfr.h"; then
-    MPFR_OK=1
-    PKG_LIBS="${PKG_LIBS} -lmpfr"
-fi
-
-# Add math library
-PKG_LIBS="${PKG_LIBS} -lm"
-
-echo ""
-
-# Report results and provide installation instructions
-if [ $FLINT_OK -eq 1 ] && [ $GMP_OK -eq 1 ] && [ $MPFR_OK -eq 1 ]; then
-    echo "✅ All required libraries found!"
-    echo "Using CFLAGS: $PKG_CFLAGS"
-    echo "Using LIBS: $PKG_LIBS"
-
-    # Generate Makevars
-    sed -e "s|@PKG_CFLAGS@|$PKG_CFLAGS|" \
-        -e "s|@PKG_LIBS@|$PKG_LIBS|" \
-        src/Makevars.in > src/Makevars
-
-    echo "Configuration successful!"
-
-else
-    echo "❌ Missing required libraries!"
-    echo ""
-    echo "To install the required dependencies:"
-    echo ""
-    echo "On macOS (using Homebrew):"
-    echo "  brew install flint gmp mpfr"
-    echo ""
-    echo "On Ubuntu/Debian:"
-    echo "  sudo apt-get install libflint-dev libgmp-dev libmpfr-dev"
-    echo ""
-    echo "On CentOS/RHEL/Fedora:"
-    echo "  sudo yum install flint-devel gmp-devel mpfr-devel"
-    echo ""
-    echo "Please install the missing libraries and try again."
+if test -z "$PKG_CPPFLAGS"; then
+    echo "Error: FLINT not found. Please install FLINT:"
+    echo "  macOS: brew install flint"
+    echo "  Ubuntu: sudo apt-get install libflint-dev"
     exit 1
 fi
+
+# Create Makevars
+cat > src/Makevars << EOF
+PKG_CPPFLAGS = $PKG_CPPFLAGS
+PKG_LIBS = $PKG_LIBS
+OBJECTS = init.o r_interface.o builtin_functions.o
+PKG_CFLAGS = -DHAVE_VISIBILITY_ATTRIBUTE
+EOF
+
+echo "Configuration complete"
+echo "CPPFLAGS: $PKG_CPPFLAGS"
+echo "LIBS: $PKG_LIBS"

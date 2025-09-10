@@ -9,13 +9,9 @@
 \arguments{
 \item{x}{A rigorous_result object}
 
-\item{show_call}{Show the original function call}
+\item{show_call}{Show the original function call (default = FALSE)}
 
 \item{...}{Additional arguments}
-
-\item{digits}{Number of digits to display for double values}
-
-\item{show_string}{Show high-precision string representation}
 }
 \description{
 Print method for rigorous integration results

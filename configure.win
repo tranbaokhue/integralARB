@@ -1,0 +1,19 @@
+#!/bin/sh
+
+echo "Configuring for Windows..."
+
+# Check Rtools/MSYS2 locations
+if [ -d "${RTOOLS40_HOME}/usr" ]; then
+    PREFIX="${RTOOLS40_HOME}/usr"
+elif [ -d "${R_TOOLS_SOFT}" ]; then
+    PREFIX="${R_TOOLS_SOFT}"
+else
+    echo "Warning: Rtools not detected. Using default paths."
+    PREFIX="/usr"
+fi
+
+PKG_CPPFLAGS="-I${PREFIX}/include -I./include -DHAVE_FLINT"
+PKG_LIBS="-L${PREFIX}/lib -lflint -lgmp -lmpfr -lm"
+
+echo "Windows configuration complete"
+echo "Using prefix: $PREFIX"

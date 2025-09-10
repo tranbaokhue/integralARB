@@ -1,1 +1,0 @@
-AC_PROG_CC_C99
