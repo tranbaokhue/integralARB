@@ -3,3 +3,18 @@
 .RData
 .Ruserdata
 autom4te.cache/
+# R build artifacts
+*.tar.gz
+*.Rcheck/
+src/*.o
+src/*.so
+src/*.dll
+
+# Configure-generated files
+src/Makevars
+
+# Documentation artifacts
+man/*.Rd~
+inst/doc/
+vignettes/*.html
+vignettes/*.pdf
