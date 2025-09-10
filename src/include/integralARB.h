@@ -63,7 +63,8 @@ typedef enum {
   EXPR_VARIABLE,      // x
   EXPR_FUNCTION,      // sin, cos, exp, etc.
   EXPR_BINARY_OP,     // +, -, *, /, ^
-  EXPR_UNARY_MINUS
+  EXPR_UNARY_MINUS,
+  EXPR_CONSTANT
 } expr_type_t;
 
 typedef struct expression_node {
@@ -98,6 +99,8 @@ void cleanup_integration_result(integration_result_t* result);
 parsed_expression_t* parse_mathematical_expression(const char* expression);
 void cleanup_parsed_expression(parsed_expression_t* expr);
 int parsed_expression_integrand(acb_ptr res, const acb_t z, void* param, slong order, slong prec);
+int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
+                             const acb_t x, slong order, slong prec);
 
 // Built-in function declarations
 extern const builtin_function_entry_t* find_builtin_function(const char* name);

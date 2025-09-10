@@ -213,6 +213,34 @@ static expression_node_t* parse_primary(tokenizer_t* tok) {
       free(identifier);
       return var_node;
     }
+    else if (strcmp(identifier, "pi") == 0) {
+      expression_node_t* const_node = create_node(EXPR_CONSTANT, "pi");
+      free(identifier);
+      return const_node;
+    } else if (strcmp(identifier, "e") == 0) {
+      expression_node_t* const_node = create_node(EXPR_CONSTANT, "e");
+      free(identifier);
+      return const_node;
+    } else if (strcmp(identifier, "ln") == 0) {
+      // Handle ln(number) as a constant evaluation
+      if (tok->current_token.type == TOKEN_LPAREN) {
+        next_token(tok); // consume '('
+        if (tok->current_token.type == TOKEN_NUMBER) {
+          char* number = strdup(tok->current_token.value);
+          next_token(tok);
+          if (tok->current_token.type == TOKEN_RPAREN) {
+            next_token(tok); // consume ')'
+            char* ln_expr = malloc(strlen(number) + 10);
+            sprintf(ln_expr, "ln_%s", number);
+            expression_node_t* ln_node = create_node(EXPR_CONSTANT, ln_expr);
+            free(number);
+            free(ln_expr);
+            free(identifier);
+            return ln_node;
+          }
+        }
+      }
+    }
     else {
       free(identifier);
       return NULL; // Error: unknown identifier
@@ -362,7 +390,7 @@ static int validate_expression_tree(expression_node_t* node) {
 // ARB EVALUATION ENGINE
 // =============================================================================
 
-static int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
+int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
                                     const acb_t x, slong order, slong prec);
 
 static int evaluate_function_derivative(acb_ptr result, const char* func_name, const acb_t arg, slong order, slong prec) {
@@ -449,7 +477,7 @@ static int evaluate_function_derivative(acb_ptr result, const char* func_name, c
   return 0; // Unsupported function
 }
 
-static int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
+int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
                                     const acb_t x, slong order, slong prec) {
   if (!node) return 0;
 
@@ -647,19 +675,28 @@ static int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
           }
         }
       }
-
       else if (strcmp(node->value, "/") == 0) {
-        if (node->left->type == EXPR_NUMBER &&
-            strcmp(node->left->value, "1") == 0 &&
-            node->right->type == EXPR_VARIABLE) {
+        if (order == 0) {
+          // General division: a/b
+          acb_t left_val, right_val;
+          acb_init(left_val); acb_init(right_val);
 
-          // Handle 1/x case
-          if (order == 0) {
-            acb_inv(result, x, prec);
-            return 1;
+          if (!evaluate_expression_tree(left_val, node->left, x, 0, prec) ||
+              !evaluate_expression_tree(right_val, node->right, x, 0, prec)) {
+              acb_clear(left_val); acb_clear(right_val);
+              return 0;
           }
-          else if (order == 1) {
-            // d/dx[1/x] = -1/x^2
+
+          acb_div(result, left_val, right_val, prec);
+          acb_clear(left_val); acb_clear(right_val);
+          return 1;
+        }
+        else if (order == 1) {
+          // Only 1/x derivative supported
+          if (node->left->type == EXPR_NUMBER &&
+              strcmp(node->left->value, "1") == 0 &&
+              node->right->type == EXPR_VARIABLE) {
+
             acb_t x_squared;
             acb_init(x_squared);
             acb_mul(x_squared, x, x, prec);
@@ -667,12 +704,10 @@ static int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
             acb_neg(result, result);
             acb_clear(x_squared);
             return 1;
+          } else {
+            acb_indeterminate(result);
+            return 0;
           }
-        }
-        // General division not supported for derivatives
-        else {
-          acb_indeterminate(result);
-          return 0;
         }
       }
 
@@ -789,6 +824,35 @@ static int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
   }
     acb_neg(result, result);
     return 1;
+  }
+
+  case EXPR_CONSTANT: {
+    if (order == 0) {
+    if (strcmp(node->value, "pi") == 0) {
+      arb_t pi_val;
+      arb_init(pi_val);
+      arb_const_pi(pi_val, prec);
+      acb_set_arb(result, pi_val);
+      arb_clear(pi_val);
+    } else if (strcmp(node->value, "e") == 0) {
+      arb_t e_val;
+      arb_init(e_val);
+      arb_const_e(e_val, prec);
+      acb_set_arb(result, e_val);
+      arb_clear(e_val);
+    } else if (strncmp(node->value, "ln_", 3) == 0) {
+      // Handle ln(number)
+      arb_t num_val, ln_val;
+      arb_init(num_val); arb_init(ln_val);
+      arb_set_str(num_val, &node->value[3], prec); // Skip "ln_"
+      arb_log(ln_val, num_val, prec);
+      acb_set_arb(result, ln_val);
+      arb_clear(num_val); arb_clear(ln_val);
+    }
+  } else {
+    acb_zero(result); // Constants have zero derivative
+  }
+  return 1;
   }
 
   default:

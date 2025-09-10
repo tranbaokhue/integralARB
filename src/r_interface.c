@@ -8,6 +8,7 @@ extern parsed_expression_t* parse_mathematical_expression(const char* expression
 extern void cleanup_parsed_expression(parsed_expression_t* expr);
 extern int parsed_expression_integrand(acb_ptr res, const acb_t z, void* param, slong order, slong prec);
 extern void list_builtin_functions(char* buffer, size_t buffer_size);
+extern int evaluate_expression_tree(acb_ptr result, expression_node_t* node, const acb_t x, slong order, slong prec);
 
 // Helper function to convert ARB result to high-precision strings
 static void arb_to_r_strings(integration_result_t *result, const arb_t value, slong prec) {
@@ -42,6 +43,61 @@ static void arb_to_r_strings(integration_result_t *result, const arb_t value, sl
   result->error_str = arf_get_str(err, digits);
 
   arf_clear(lo); arf_clear(hi); arf_clear(mid); arf_clear(err);
+}
+
+// Helper function to parse symbolic constants and expressions
+static int parse_symbolic_expression(arb_t result, const char* str, slong prec) {
+  if (strcmp(str, "pi") == 0) {
+    arb_const_pi(result, prec);
+    return 0;
+  } else if (strcmp(str, "e") == 0) {
+    arb_const_e(result, prec);
+    return 0;
+  } else if (strncmp(str, "ln(", 3) == 0) {
+    // Extract number from ln(number)
+    char* end_paren = strchr(str + 3, ')');
+    if (end_paren) {
+      int len = end_paren - (str + 3);
+      char* number = malloc(len + 1);
+      strncpy(number, str + 3, len);
+      number[len] = '\0';
+
+      arb_t temp;
+      arb_init(temp);
+      if (arb_set_str(temp, number, prec) == 0) {
+        arb_log(result, temp, prec);
+        arb_clear(temp);
+        free(number);
+        return 0;
+      }
+      arb_clear(temp);
+      free(number);
+    }
+  } else if (strstr(str, "/") && !strstr(str, "x")) {
+    // Handle expressions like "pi/2", "ln(2)/2", "1/3"
+    // Use the expression parser to evaluate
+    parsed_expression_t* parsed = parse_mathematical_expression(str);
+    if (parsed) {
+      acb_t temp_result;
+      acb_init(temp_result);
+      acb_t dummy_x;  // Not used for constant expressions
+      acb_init(dummy_x);
+
+      if (evaluate_expression_tree(temp_result, parsed->terms[0].expr, dummy_x, 0, prec)) {
+        acb_get_real(result, temp_result);
+        cleanup_parsed_expression(parsed);
+        acb_clear(temp_result);
+        acb_clear(dummy_x);
+        return 0;
+      }
+      cleanup_parsed_expression(parsed);
+      acb_clear(temp_result);
+      acb_clear(dummy_x);
+    }
+  }
+
+  // Fall back to regular string parsing
+  return arb_set_str(result, str, prec);
 }
 
 // Main integration function for mathematical expressions (string inputs only)
@@ -124,17 +180,17 @@ SEXP integrate_expression_c(SEXP expression, SEXP a_str, SEXP b_str, SEXP precis
   }
 
   /* Set up high-precision integration limits from strings */
-  if (arb_set_str(a_real, a_string, prec_bits) != 0) {
+  if (parse_symbolic_expression(a_real, a_string, prec_bits) != 0) {
     result.status = -1;
     snprintf(result.message, sizeof(result.message),
-             "Invalid number format in lower limit: '%s'", a_string);
+             "Invalid constant or number format in lower limit: '%s'", a_string);
     goto create_r_result;
   }
 
-  if (arb_set_str(b_real, b_string, prec_bits) != 0) {
+  if (parse_symbolic_expression(b_real, b_string, prec_bits) != 0) {
     result.status = -1;
     snprintf(result.message, sizeof(result.message),
-             "Invalid number format in upper limit: '%s'", b_string);
+             "Invalid constant or number format in upper limit: '%s'", b_string);
     goto create_r_result;
   }
 

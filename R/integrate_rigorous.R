@@ -51,9 +51,13 @@
 #' - `^` - Exponentiation (supports x^n polynomials)
 #' - `()` - Parentheses for grouping
 #'
-#' *Numbers:*
-#' - Any decimal number (use strings for high precision)
-#' - Scientific notation supported
+#' *Constants:*
+#' - `pi` - Mathematical constant π with full ARB precision
+#' - `e` - Mathematical constant e with full ARB precision
+#' - `ln(n)` - Natural logarithm of number n
+#'
+#' *Rational Numbers:*
+#' - `1/2`, `3/4`, `22/7` - Exact rational arithmetic
 #'
 #' **Chain Rule Examples:**
 #' - `sin(2*x)` - Sine of scaled argument
@@ -293,6 +297,25 @@ print.rigorous_result <- function(x, digits = 15, show_string = TRUE,
   invisible(x)
 }
 
+# Convert symbolic limits to numeric
+parse_symbolic_limit <- function(limit_str) {
+  if (limit_str == "pi") return(pi)
+  if (limit_str == "e") return(exp(1))
+  if (grepl("^ln\\(", limit_str)) {
+    num_str <- sub("ln\\(([^)]+)\\)", "\\1", limit_str)
+    return(log(as.numeric(num_str)))
+  }
+  if (grepl("/", limit_str) && !grepl("x", limit_str)) {
+    parts <- strsplit(limit_str, "/")[[1]]
+    return(as.numeric(parts[1]) / as.numeric(parts[2]))
+  }
+  if (grepl("pi/", limit_str)) {
+    divisor <- sub("pi/", "", limit_str)
+    return(pi / as.numeric(divisor))
+  }
+  return(as.numeric(limit_str))
+}
+
 #' Get exact analytical result for known integrals
 #'
 #' Returns the exact analytical value for definite integrals when known.
@@ -311,9 +334,9 @@ print.rigorous_result <- function(x, digits = 15, show_string = TRUE,
 #' get_exact_result("exp(x)", "0", "1")                       # Should be e-1
 #' }
 get_exact_result <- function(expression, a, b) {
-  # Convert string limits to numeric for calculation
-  a_num <- tryCatch(as.numeric(a), error = function(e) NA)
-  b_num <- tryCatch(as.numeric(b), error = function(e) NA)
+  # Parse symbolic limits
+  a_num <- tryCatch(parse_symbolic_limit(a), error = function(e) as.numeric(a))
+  b_num <- tryCatch(parse_symbolic_limit(b), error = function(e) as.numeric(b))
 
   if (is.na(a_num) || is.na(b_num)) {
     return(NA)

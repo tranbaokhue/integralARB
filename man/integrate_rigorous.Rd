@@ -84,10 +84,16 @@ parsing and derivative computation for guaranteed accuracy.
 \item \verb{()} - Parentheses for grouping
 }
 
-\emph{Numbers:}
+\emph{Constants:}
 \itemize{
-\item Any decimal number (use strings for high precision)
-\item Scientific notation supported
+\item \code{pi} - Mathematical constant π with full ARB precision
+\item \code{e} - Mathematical constant e with full ARB precision
+\item \code{ln(n)} - Natural logarithm of number n
+}
+
+\emph{Rational Numbers:}
+\itemize{
+\item \code{1/2}, \code{3/4}, \code{22/7} - Exact rational arithmetic
 }
 
 \strong{Chain Rule Examples:}
