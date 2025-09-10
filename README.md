@@ -161,23 +161,13 @@ The package provides mathematically rigorous error bounds:
 # Specify working precision (64-1024 bits)
 result <- integrate_rigorous("cos(x)", "0", "pi/2", precision = 128)
 
-# Access high-precision string representation
-cat("Value:", result$value_str, "\n")
-cat("Error bound: ±", result$error_bound, "\n")
-
-# Rigorous accuracy guarantee
-if (result$status == 0) {
-  error_num <- as.numeric(result$error_bound)
-  accuracy_digits <- -log10(error_num)
-  cat("Guaranteed accuracy: >=", floor(accuracy_digits), "decimal digits\n")
-}
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **FLINT not found**: Ensure FLINT is installed and in your system's library path
+1. **FLINT not found**: Ensure FLINT is installed and in your system's library path. Windows support requires manual FLINT installation. See detailed Windows instructions above.
 2. **Compilation errors**: Check that development tools are installed (Xcode on macOS, build-essential on Linux, Rtools on Windows)
 3. **Windows DLL issues**: Make sure MSYS2 paths are in your system PATH
 
