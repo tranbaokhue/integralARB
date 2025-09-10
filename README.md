@@ -6,27 +6,9 @@ Rigorous numerical integration for mathematical functions using ball arithmetic 
 
 ## Table of Contents
 
-- [Features](#features)
-- [System Requirements](#system-requirements)
-  - [Linux (Ubuntu/Debian)](#linux-ubuntudebian)
-  - [Linux (CentOS/RHEL/Fedora)](#linux-centosrhelfedora)
-  - [macOS](#macos)
-  - [Windows](#windows)
-- [R Package Installation](#r-package-installation)
-- [Quick Start](#quick-start)
-- [Supported Mathematical Expressions](#supported-mathematical-expressions)
-  - [Functions](#functions)
-  - [Operations](#operations)
-  - [Constants](#constants)
-  - [Chain Rule Support](#chain-rule-support)
-- [Examples](#examples)
-- [Precision and Error Bounds](#precision-and-error-bounds)
-- [Troubleshooting](#troubleshooting)
-  - [Common Issues](#common-issues)
-  - [Getting Help](#getting-help)
-- [License](#license)
-- [Citation](#citation)
-- [References](#references)
+- [Features](#features) • [System Requirements](#system-requirements) • [Installation](#r-package-installation) • [Quick Start](#quick-start)
+- [Supported Expressions](#supported-mathematical-expressions) • [Examples](#examples) • [Precision](#precision-and-error-bounds)
+- [Troubleshooting](#troubleshooting) • [License](#license) • [Citation](#citation) • [References](#references)
 
 ## Features
 
