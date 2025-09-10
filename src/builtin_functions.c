@@ -612,6 +612,70 @@ static int evaluate_expression_tree(acb_ptr result, expression_node_t* node,
         acb_clear(left_val); acb_clear(right_val);
         return 1;
       }
+      else if (strcmp(node->value, "^") == 0) {
+        if (node->left->type == EXPR_VARIABLE && node->right->type == EXPR_NUMBER) {
+          // Handle x^n case
+          if (order == 0) {
+            acb_t exp_val;
+            acb_init(exp_val);
+
+            arb_t exp_arb;
+            arb_init(exp_arb);
+            arb_set_str(exp_arb, node->right->value, prec);
+            acb_set_arb(exp_val, exp_arb);
+
+            acb_pow(result, x, exp_val, prec);  // x^n
+
+            arb_clear(exp_arb);
+            acb_clear(exp_val);
+            return 1;
+          }
+          else if (order == 1) {
+            // Power rule: d/dx[x^n] = n*x^(n-1)
+            arb_t n, n_minus_1;
+            acb_t x_power;
+            arb_init(n); arb_init(n_minus_1); acb_init(x_power);
+
+            arb_set_str(n, node->right->value, prec);
+            arb_sub_ui(n_minus_1, n, 1, prec);
+
+            acb_pow_arb(x_power, x, n_minus_1, prec);  // x^(n-1)
+            acb_mul_arb(result, x_power, n, prec);     // n*x^(n-1)
+
+            arb_clear(n); arb_clear(n_minus_1); acb_clear(x_power);
+            return 1;
+          }
+        }
+      }
+
+      else if (strcmp(node->value, "/") == 0) {
+        if (node->left->type == EXPR_NUMBER &&
+            strcmp(node->left->value, "1") == 0 &&
+            node->right->type == EXPR_VARIABLE) {
+
+          // Handle 1/x case
+          if (order == 0) {
+            acb_inv(result, x, prec);
+            return 1;
+          }
+          else if (order == 1) {
+            // d/dx[1/x] = -1/x^2
+            acb_t x_squared;
+            acb_init(x_squared);
+            acb_mul(x_squared, x, x, prec);
+            acb_inv(result, x_squared, prec);
+            acb_neg(result, result);
+            acb_clear(x_squared);
+            return 1;
+          }
+        }
+        // General division not supported for derivatives
+        else {
+          acb_indeterminate(result);
+          return 0;
+        }
+      }
+
       else if (order == 1) {
         // SPECIAL CASE: c*f(x) where c is constant
         if (node->left->type == EXPR_NUMBER &&

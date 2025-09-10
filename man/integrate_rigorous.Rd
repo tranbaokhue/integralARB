@@ -79,7 +79,8 @@ parsing and derivative computation for guaranteed accuracy.
 \itemize{
 \item \code{+}, \code{-} - Addition, subtraction
 \item \code{*} - Multiplication (with first derivative product rule)
-\item \code{^} - Exponentiation (limited support)
+\item \code{/} - Division (supports 1/x reciprocals)
+\item \code{^} - Exponentiation (supports x^n polynomials)
 \item \verb{()} - Parentheses for grouping
 }
 
@@ -175,6 +176,18 @@ print(result11)
 # Example 12: Arctangent with scaling ∫₀¹ atan(2*x) dx
 result12 <- integrate_rigorous("atan(2*x)", "0", "1")
 print(result12)
+
+# Example 13: Polynomial integral ∫₀¹ x² dx = 1/3
+result13 <- integrate_rigorous("x^2", "0", "1")
+print(result13)
+
+# Example 14: Higher order polynomial ∫₀¹ x³ dx = 1/4
+result14 <- integrate_rigorous("x^3", "0", "1")
+print(result14)
+
+# Example 15: Reciprocal integral ∫₁² 1/x dx = ln(2)
+result15 <- integrate_rigorous("1/x", "1", "2")
+print(result15)
 }
 }
 \references{

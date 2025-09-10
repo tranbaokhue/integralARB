@@ -47,7 +47,8 @@
 #' *Operations:*
 #' - `+`, `-` - Addition, subtraction
 #' - `*` - Multiplication (with first derivative product rule)
-#' - `^` - Exponentiation (limited support)
+#' - `/` - Division (supports 1/x reciprocals)
+#' - `^` - Exponentiation (supports x^n polynomials)
 #' - `()` - Parentheses for grouping
 #'
 #' *Numbers:*
@@ -132,6 +133,18 @@
 #' # Example 12: Arctangent with scaling ∫₀¹ atan(2*x) dx
 #' result12 <- integrate_rigorous("atan(2*x)", "0", "1")
 #' print(result12)
+#'
+#' # Example 13: Polynomial integral ∫₀¹ x² dx = 1/3
+#' result13 <- integrate_rigorous("x^2", "0", "1")
+#' print(result13)
+#'
+#' # Example 14: Higher order polynomial ∫₀¹ x³ dx = 1/4
+#' result14 <- integrate_rigorous("x^3", "0", "1")
+#' print(result14)
+#'
+#' # Example 15: Reciprocal integral ∫₁² 1/x dx = ln(2)
+#' result15 <- integrate_rigorous("1/x", "1", "2")
+#' print(result15)
 #' }
 #' @references
 #' Johansson, F. (2017). Arb: Efficient Arbitrary-Precision Midpoint-Radius
@@ -334,8 +347,12 @@ get_exact_result <- function(expression, a, b) {
     return((-cos(2*b_num) + cos(2*a_num)) / 2)
   } else if (expression == "cos(2*x)") {
     return((sin(2*b_num) - sin(2*a_num)) / 2)
+  } else if (grepl("^x\\^[0-9]+$", expression)) {
+  n <- as.numeric(sub("x\\^", "", expression))
+  return((b_num^(n+1) - a_num^(n+1)) / (n+1))
+  } else if (expression == "1/x") {
+  return(log(b_num) - log(a_num))
   }
-
   # Special case: arctangent integral
   if (expression == "1/(1+x^2)" || expression == "1/(1+x*x)") {
     return(atan(b_num) - atan(a_num))
