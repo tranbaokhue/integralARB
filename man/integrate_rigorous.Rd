@@ -170,11 +170,8 @@ result9 <- integrate_rigorous("2*sin(x)", "0", "3.14159265358979323846")
 print(result9)
 
 # Example 10: Verify against known result
-arctangent_result <- integrate_rigorous("1/(1+x^2)", "0", "1")
-pi_quarter <- pi/4
-cat("∫₀¹ 1/(1+x²) dx =", arctangent_result$value, "\n")
-cat("π/4 =", pi_quarter, "\n")
-cat("Difference:", abs(arctangent_result$value - pi_quarter), "\n")
+arctangent_result <- integrate_rigorous("atan(x)", "0", "1")
+print(result10)
 
 # Example 11: Arctangent integral ∫₀¹ atan(x) dx ≈ π/4 - ln(2)/2
 result11 <- integrate_rigorous("atan(x)", "0", "1")

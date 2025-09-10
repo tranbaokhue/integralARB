@@ -53,7 +53,7 @@
 #' - `()` - Parentheses for grouping
 #'
 #' *Constants:*
-#' - `pi` - Mathematical constant π with full ARB precision
+#' - `pi` - Mathematical constant pi with full ARB precision
 #' - `e` - Mathematical constant e with full ARB precision
 #' - `ln(n)` - Natural logarithm of number n
 #'
@@ -84,69 +84,38 @@
 #'
 #' @examples
 #' \dontrun{
-#' # Example 1: Basic trigonometric integral ∫₀^π sin(x) dx = 2
-#' result1 <- integrate_rigorous("sin(x)", "0", "3.14159265358979323846")
+#' # Example 1: Basic trigonometric integral - sine
+#' result1 <- integrate_rigorous("sin(x)", "0", "pi")
 #' print(result1)
 #' cat("High precision result:", result1$value_str, "\n")
 #'
-#' # Example 2: Chain rule - sine with scaling ∫₀^π sin(2*x) dx = 1
-#' result2 <- integrate_rigorous("sin(2*x)", "0", "3.14159265358979323846")
+#' # Example 2: Chain rule - sine with scaling
+#' result2 <- integrate_rigorous("sin(2*x)", "0", "pi/2")
 #' print(result2)
 #'
-#' # Example 3: Exponential decay ∫₀^1 exp(-x) dx = 1 - 1/e
+#' # Example 3: Chain rule - atan with scaling
 #' result3 <- integrate_rigorous("exp(-x)", "0", "1")
 #' print(result3)
 #'
-#' # Example 4: Polynomial ∫₀^1 x^2 dx = 1/3
-#' result4 <- integrate_rigorous("x^2", "0", "1")
+#' # Example 4: Hyperbolic
+#' result4 <- integrate_rigorous("sinh(x)", "0", "1")
 #' print(result4)
 #'
-#' # Example 5: Complex expression with addition
-#' result5 <- integrate_rigorous("sin(x) + cos(x)", "0", "1.5707963267948966")
+#' # Example 5: Polynomial
+#' result5 <- integrate_rigorous("x^(10)", "-6", "6")
 #' print(result5)
 #'
-#' # Example 6: High precision with string endpoints
-#' result6 <- integrate_rigorous("cos(3*x)",
-#'                              "0",
-#'                              "1.047197551196597746154214461093167628066",
-#'                              precision = 256)
-#' cat("256-bit result:", result6$value_str, "\n")
+#' # Example 6:Log
+#' result6 <- integrate_rigorous("ln(x)", "0.01", "0.1")
+#' print(result6)
 #'
-#' # Example 7: Hyperbolic functions ∫₀^1 sinh(x) dx = cosh(1) - 1
-#' result7 <- integrate_rigorous("sinh(x)", "0", "1")
+#' # Example 7: Exponential
+#' result7 <- integrate_rigorous("2 * exp(3 * x)", "0", "ln(2)")
 #' print(result7)
 #'
-#' # Example 8: Logarithmic integral ∫₁^e log(x) dx = 1
-#' result8 <- integrate_rigorous("log(x)", "1", "2.718281828459045235360287471352662498")
+#' # Example 8: Sum
+#' result8 <- integrate_rigorous("2 * sin(2 * x) + 2 * exp(x * 3)", "-pi/6", "pi/3")
 #' print(result8)
-#'
-#' # Example 9: Product expression ∫₀^1 2*sin(x) dx
-#' result9 <- integrate_rigorous("2*sin(x)", "0", "3.14159265358979323846")
-#' print(result9)
-#'
-#' # Example 10: Verify against known result
-#' arctangent_result <- integrate_rigorous("atan(x)", "0", "1")
-#' print(result10)
-#'
-#' # Example 11: Arctangent integral ∫₀¹ atan(x) dx ≈ π/4 - ln(2)/2
-#' result11 <- integrate_rigorous("atan(x)", "0", "1")
-#' print(result11)
-#'
-#' # Example 12: Arctangent with scaling ∫₀¹ atan(2*x) dx
-#' result12 <- integrate_rigorous("atan(2*x)", "0", "1")
-#' print(result12)
-#'
-#' # Example 13: Polynomial integral ∫₀¹ x² dx = 1/3
-#' result13 <- integrate_rigorous("x^2", "0", "1")
-#' print(result13)
-#'
-#' # Example 14: Higher order polynomial ∫₀¹ x³ dx = 1/4
-#' result14 <- integrate_rigorous("x^3", "0", "1")
-#' print(result14)
-#'
-#' # Example 15: Reciprocal integral ∫₁² 1/x dx = ln(2)
-#' result15 <- integrate_rigorous("1/x", "1", "2")
-#' print(result15)
 #' }
 #' @references
 #' Johansson, F. (2017). Arb: Efficient Arbitrary-Precision Midpoint-Radius
@@ -239,9 +208,7 @@ list_supported_expressions <- function() {
 #' Print method for rigorous integration results
 #'
 #' @param x A rigorous_result object
-#' @param digits Number of digits to display for double values
-#' @param show_string Show high-precision string representation
-#' @param show_call Show the original function call
+#' @param show_call Show the original function call (default = FALSE)
 #' @param ... Additional arguments
 #' @export
 print.rigorous_result <- function(x, show_call = FALSE, ...) {
@@ -264,7 +231,7 @@ print.rigorous_result <- function(x, show_call = FALSE, ...) {
       cat("  ", x$value_str, "\n")
       if (!is.null(x$error_bound) && nchar(x$error_bound) > 0) {
         cat("Rigorous error bound:\n")
-        cat("  ±", x$error_bound, "\n")
+        cat("  \U+00B1", x$error_bound, "\n")
       }
     } else {
       cat("Value: [high-precision string not available]\n")
@@ -276,7 +243,7 @@ print.rigorous_result <- function(x, show_call = FALSE, ...) {
       if (!is.na(error_num) && error_num > 0) {
         accuracy_digits <- -log10(error_num)
         if (accuracy_digits > 0) {
-          cat("Guaranteed accuracy: ≥", floor(accuracy_digits), " decimal digits\n")
+          cat("Guaranteed accuracy: \U+2265", floor(accuracy_digits), " decimal digits\n")
         }
       }
     }
@@ -349,12 +316,12 @@ get_exact_result <- function(expression, a, b) {
   } else if (expr_clean == "cosh(x)") {
     return(sinh(b_num) - sinh(a_num))
   } else if (expr_clean == "atan(x)" || expr_clean == "arctan(x)") {
-    # ∫ atan(x) dx = x*atan(x) - ln(1+x²)/2 + C
+    # int atan(x) dx = x*atan(x) - ln(1+x²)/2 + C
     b_val <- b_num * atan(b_num) - log(1 + b_num^2)/2
     a_val <- a_num * atan(a_num) - log(1 + a_num^2)/2
     return(b_val - a_val)
   } else if (expr_clean == "sqrt(x)") {
-    # ∫ sqrt(x) dx = (2/3) * x^(3/2) + C
+    # int sqrt(x) dx = (2/3) * x^(3/2) + C
     return((2/3) * (b_num^(3/2) - a_num^(3/2)))
   }
 
@@ -368,7 +335,7 @@ get_exact_result <- function(expression, a, b) {
 
     coeff <- tryCatch(as.numeric(coeff_str), error = function(e) NA)
     if (!is.na(coeff)) {
-      # ∫ sin(c*x) dx = -cos(c*x)/c + C
+      # int sin(c*x) dx = -cos(c*x)/c + C
       return((-cos(coeff * b_num) + cos(coeff * a_num)) / coeff)
     }
   }
@@ -382,7 +349,7 @@ get_exact_result <- function(expression, a, b) {
 
     coeff <- tryCatch(as.numeric(coeff_str), error = function(e) NA)
     if (!is.na(coeff)) {
-      # ∫ cos(c*x) dx = sin(c*x)/c + C
+      # int cos(c*x) dx = sin(c*x)/c + C
       return((sin(coeff * b_num) - sin(coeff * a_num)) / coeff)
     }
   }
@@ -397,7 +364,7 @@ get_exact_result <- function(expression, a, b) {
 
     coeff <- tryCatch(as.numeric(coeff_str), error = function(e) NA)
     if (!is.na(coeff)) {
-      # ∫ exp(c*x) dx = exp(c*x)/c + C
+      # int exp(c*x) dx = exp(c*x)/c + C
       return((exp(coeff * b_num) - exp(coeff * a_num)) / coeff)
     }
   }
@@ -415,7 +382,7 @@ get_exact_result <- function(expression, a, b) {
 
     power <- tryCatch(as.numeric(power_str), error = function(e) NA)
     if (!is.na(power) && power != -1) {
-      # ∫ x^n dx = x^(n+1)/(n+1) + C  (for n ≠ -1)
+      # int x^n dx = x^(n+1)/(n+1) + C  (for n ≠ -1)
       return((b_num^(power + 1) - a_num^(power + 1)) / (power + 1))
     }
   }
@@ -442,7 +409,7 @@ get_exact_result <- function(expression, a, b) {
     power <- tryCatch(as.numeric(power_str), error = function(e) 1)
 
     if (!is.na(coeff) && !is.na(power) && power != -1) {
-      # ∫ c*x^n dx = c*x^(n+1)/(n+1) + C
+      # int c*x^n dx = c*x^(n+1)/(n+1) + C
       return(coeff * (b_num^(power + 1) - a_num^(power + 1)) / (power + 1))
     }
   }
