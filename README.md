@@ -1,7 +1,5 @@
 # integralARB
 
-[![R-CMD-check](https://github.com/tranbaokhue/integralARB/workflows/R-CMD-check/badge.svg)](https://github.com/tranbaokhue/integralARB/actions)
-
 Rigorous numerical integration for mathematical functions using ball arithmetic with mathematically guaranteed error bounds. Based on the FLINT/ARB library for arbitrary-precision computation.
 
 ## Table of Contents
@@ -18,76 +16,46 @@ Rigorous numerical integration for mathematical functions using ball arithmetic 
 - **Flexible integration limits** using mathematical expressions (e.g., `pi/2`, `ln(5)/3`, `sqrt(2)`)
 - **Cross-platform compatibility** (Linux, macOS, Windows with Rtools)
 
-## System Requirements
+## System Requirements (following flint R package)
 
-This package requires the FLINT library and its dependencies. Follow the installation instructions for your operating system below.
+This package requires a complete FLINT installation (>= 3.0.0) with ACB support.
 
-### Linux (Ubuntu/Debian)
-
+### Ubuntu 22.04+ / Debian 12+
 ```bash
-# Update package list
 sudo apt-get update
-
-# Install FLINT and dependencies
 sudo apt-get install libflint-dev libgmp-dev libmpfr-dev
-
-# For older Ubuntu versions, you may need:
-sudo apt-get install build-essential
 ```
 
-### Linux (CentOS/RHEL/Fedora)
-
+### Ubuntu 20.04 and older
+Ubuntu 20.04's FLINT package lacks ACB functions. Build from source:
 ```bash
-# CentOS/RHEL with EPEL
-sudo yum install epel-release
-sudo yum install flint-devel gmp-devel mpfr-devel
-
-# Fedora
-sudo dnf install flint-devel gmp-devel mpfr-devel
+sudo apt-get install libgmp-dev libmpfr-dev build-essential
+wget https://github.com/flintlib/flint/archive/v3.0.1.tar.gz
+tar -xzf v3.0.1.tar.gz
+cd flint-3.0.1
+./configure --prefix=/usr/local
+make -j4
+sudo make install
+sudo ldconfig
 ```
-
 ### macOS
-
 ```bash
-# Install Homebrew if not already installed
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Install FLINT and dependencies
 brew install flint gmp mpfr
-
-# Ensure Xcode command line tools are installed
-xcode-select --install
 ```
 
 ### Windows
-
-Windows installation requires Rtools and MSYS2:
-
-1. **Install Rtools**: Download and install [Rtools](https://cran.r-project.org/bin/windows/Rtools/) compatible with your R version.
-
-2. **Install FLINT via MSYS2**:
-   ```bash
-   # Open MSYS2 terminal (comes with Rtools)
-   pacman -S mingw-w64-x86_64-flint
-   pacman -S mingw-w64-x86_64-gmp
-   pacman -S mingw-w64-x86_64-mpfr
-   ```
-
-3. **Alternative - vcpkg**:
-   ```bash
-   # If you prefer vcpkg
-   vcpkg install flint:x64-windows
-   vcpkg install gmp:x64-windows
-   vcpkg install mpfr:x64-windows
-   ```
+Install [Rtools44+](https://cran.r-project.org/bin/windows/Rtools/) which includes FLINT headers and libraries.
 
 ## R Package Installation
 
-Once system dependencies are installed:
-
 ```r
 # Install from GitHub
-if (!require(devtools)) install.packages("devtools")
+devtools::install_github("tranbaokhue/integralARB")
+
+# If installation fails, you may need to specify library paths:
+# Linux example:
+Sys.setenv(R_FLINT_CPPFLAGS = "-I/usr/local/include")
+Sys.setenv(R_FLINT_LIBS = "-L/usr/local/lib -lflint -lmpfr -lgmp")
 devtools::install_github("tranbaokhue/integralARB")
 ```
 
