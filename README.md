@@ -1,5 +1,7 @@
 # integralARB
 
+[![R-CMD-check](https://github.com/tranbaokhue/integralARB/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/tranbaokhue/integralARB/actions/workflows/R-CMD-check.yaml)
+
 Rigorous numerical integration for mathematical functions using ball arithmetic with mathematically guaranteed error bounds. Based on the FLINT/ARB library for arbitrary-precision computation.
 
 ## Table of Contents
@@ -18,7 +20,7 @@ Rigorous numerical integration for mathematical functions using ball arithmetic 
 
 ## System Requirements (following flint R package)
 
-This package requires a complete FLINT installation (>= 3.0.0) with ACB support.
+**IMPORTANT**: This package requires FLINT >= 3.0.0 (released 2023) which includes ARB library integration.
 
 ### Ubuntu 22.04+ / Debian 12+
 ```bash
@@ -45,6 +47,12 @@ brew install flint gmp mpfr
 
 ### Windows
 Install [Rtools44+](https://cran.r-project.org/bin/windows/Rtools/) which includes FLINT headers and libraries.
+
+### Verify FLINT Installation
+After installation, check your FLINT version:
+```bash
+pkg-config --modversion flint  # Should show >= 3.0.0
+```
 
 ## R Package Installation
 
