@@ -14,4 +14,4 @@ Suggests: testthat (>= 3.0.0), knitr, rmarkdown
 VignetteBuilder: knitr
 URL: https://github.com/tranbaokhue/integralARB
 BugReports: https://github.com/tranbaokhue/integralARB/issues
-SystemRequirements: FLINT library (>= 2.8.0), GMP, MPFR. See README for platform-specific installation instructions.
+SystemRequirements: FLINT library (>= 3.0.0) with ACB support, GMP, MPFR. On Ubuntu <=20.04, FLINT must be built from source. See README for installation instructions.
