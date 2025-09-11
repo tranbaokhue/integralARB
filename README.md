@@ -153,5 +153,6 @@ R package version 0.1.0. https://github.com/tranbaokhue/integralARB
 
 ## References
 
-- Johansson, F. (2017). Arb: Efficient Arbitrary-Precision Midpoint-Radius Interval Arithmetic. IEEE Transactions on Computers.
-- FLINT Development Team. FLINT: Fast Library for Number Theory. https://flintlib.org/
+[1] F. Johansson, “Arb: Efficient Arbitrary-Precision Midpoint-Radius Interval Arithmetic,” IEEE Transactions on Computers, vol. 66, no. 8, pp. 1281–1292, Aug. 2017, doi: 10.1109/TC.2017.2690633.
+
+[2] FLINT Development Team. FLINT: Fast Library for Number Theory. https://flintlib.org/
