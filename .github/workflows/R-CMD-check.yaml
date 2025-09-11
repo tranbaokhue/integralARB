@@ -26,16 +26,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: System information
-        run: |
-          echo "=== System Information ==="
-          uname -a
-          echo "Available memory: $(free -h | grep Mem || echo 'N/A')"
-          echo "CPU info: $(nproc || echo 'N/A') cores"
-
       - uses: r-lib/actions/setup-pandoc@v2
-
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: ${{ matrix.config.r }}
@@ -44,114 +35,42 @@ jobs:
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
-          echo "=== Installing Linux Dependencies ==="
           sudo apt-get update -qq
-          # Install both dev and runtime libraries
-          sudo apt-get install -y libflint-dev libflint-2.8.4 libgmp-dev libgmp10 libmpfr-dev libmpfr6 build-essential
-          # Refresh library cache
+          # Install available packages without specifying exact versions
+          sudo apt-get install -y libflint-dev libgmp-dev libmpfr-dev build-essential
           sudo ldconfig
-          echo "=== Verifying Installation ==="
-          pkg-config --exists flint && echo "FLINT pkg-config OK" || echo "FLINT pkg-config FAILED"
-          ldconfig -p | grep -E "(flint|gmp|mpfr)"
-          echo "=== FLINT Library Details ==="
-          pkg-config --modversion flint
-          pkg-config --libs flint
+          # Verify installation
+          pkg-config --exists flint && echo "FLINT found" || echo "FLINT not found via pkg-config"
+          find /usr -name "libflint*" 2>/dev/null | head -3
+          ldconfig -p | grep flint || echo "No FLINT in library cache"
 
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          echo "=== Installing macOS Dependencies ==="
           brew install flint gmp mpfr
-          echo "=== Verifying Installation ==="
-          brew list flint --versions
-          pkg-config --modversion flint || echo "No pkg-config"
-          find /opt/homebrew -name "flint.h" 2>/dev/null | head -3
-
-      - name: R environment information
-        run: |
-          R -e "
-          cat('=== R Environment ===\n')
-          options(width = 100)
-          sessionInfo()
-          capabilities()
-          Sys.info()
-          .libPaths()
-          "
 
       - name: Configure package
         run: |
-          echo "=== Running Configure Script ==="
-          ls -la
           chmod +x configure
-          ./configure || { echo "Configure failed"; exit 1; }
-          echo "=== Generated Files ==="
-          ls -la src/
-          echo "=== Final Makevars ==="
-          cat src/Makevars || echo "No Makevars generated"
+          ./configure
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::rcmdcheck
           needs: check
 
-      - name: Pre-check diagnostics
-        run: |
-          echo "=== Pre-check Diagnostics ==="
-          echo "R CMD config:"
-          R CMD config CC
-          R CMD config CXX
-          R CMD config CFLAGS
-          R CMD config LDFLAGS
-          echo "=== Package Structure ==="
-          find . -name "*.c" -o -name "*.h" -o -name "Makevars*" | sort
-          echo "=== Library Paths ==="
-          echo $LD_LIBRARY_PATH
-          ldconfig -p | grep -E "(flint|gmp|mpfr)" || echo "Libraries not in ld cache"
-
-      - name: Test compilation (Linux)
+      - name: Check shared library dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
-          echo "=== Test Compilation ==="
+          echo "Checking if we can build and link..."
           cd src
-          echo '#include "include/integralARB.h"' > test.c
-          echo 'int main(){return 0;}' >> test.c
-          gcc -I. $(pkg-config --cflags flint) -c test.c -o test.o && echo "Headers OK" || echo "Header compilation failed"
-          rm -f test.c test.o
-
-      - name: Build package manually
-        run: |
-          echo "=== Manual Build Test ==="
-          R CMD build . --no-build-vignettes
-          PKG_FILE=$(ls *.tar.gz)
-          echo "Built package: $PKG_FILE"
-          R CMD INSTALL --build $PKG_FILE || {
-            echo "=== Installation Failed - Debug Info ==="
-            find . -name "*.log" -exec echo "=== {} ===" \; -exec cat {} \;
-            exit 1
-          }
-
-      - name: Test package loading
-        run: |
-          echo "=== Testing Package Load ==="
-          R -e "library(integralARB); cat('Package loaded successfully\n')" || {
-            echo "=== Package Loading Failed ==="
-            R -e "
-            tryCatch({
-              library(integralARB)
-            }, error = function(e) {
-              cat('Error:', conditionMessage(e), '\n')
-            })
-            "
-            exit 1
-          }
+          # Simple test compilation
+          echo '#include <stdio.h>' > test.c
+          echo 'int main(){printf("test"); return 0;}' >> test.c
+          gcc $(pkg-config --cflags --libs flint || echo "-lflint -lgmp -lmpfr") test.c -o test && ./test && echo "Basic linking works"
+          rm -f test.c test
 
       - uses: r-lib/actions/check-r-package@v2
-        with:
-          upload-snapshots: true
-
-      - name: Show check results on failure
-        if: failure()
-        run: |
-          echo "=== Check Results ==="
-          find . -name "00check.log" -exec cat {} \;
-          find . -name "00install.out" -exec cat {} \;
+        env:
+          # Set library path for runtime
+          LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu:/usr/local/lib:${{ env.LD_LIBRARY_PATH }}

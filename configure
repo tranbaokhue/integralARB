@@ -1,42 +1,30 @@
 #!/bin/sh
 
-echo "Configuring integralARB for $(uname)..."
+echo "Configuring integralARB..."
 
 PKG_CPPFLAGS=""
 PKG_LIBS=""
 
-if command -v pkg-config >/dev/null 2>&1; then
-    if pkg-config --exists flint 2>/dev/null; then
-        echo "Found FLINT via pkg-config"
-        FLINT_CFLAGS="`pkg-config --cflags flint`"
-        FLINT_LIBS="`pkg-config --libs flint`"
-        PKG_CPPFLAGS="$FLINT_CFLAGS -I./include -DHAVE_FLINT"
+# Try pkg-config first
+if command -v pkg-config >/dev/null 2>&1 && pkg-config --exists flint 2>/dev/null; then
+    echo "Found FLINT via pkg-config"
+    PKG_CPPFLAGS="`pkg-config --cflags flint` -I./include -DHAVE_FLINT"
+    PKG_LIBS="`pkg-config --libs flint`"
 
-        if test "$(uname)" = "Linux"; then
-            # On Linux, ensure runtime library paths are set
-            LIBDIRS="`pkg-config --libs-only-L flint | sed 's/-L//g'`"
-            RPATH_FLAGS=""
-            for dir in $LIBDIRS; do
-                RPATH_FLAGS="$RPATH_FLAGS -Wl,-rpath,$dir"
-            done
-            PKG_LIBS="$FLINT_LIBS $RPATH_FLAGS"
-            echo "Linux RPATH flags: $RPATH_FLAGS"
-        else
-            PKG_LIBS="$FLINT_LIBS"
-        fi
+    # Add system library path for Ubuntu
+    if test "$(uname)" = "Linux"; then
+        PKG_LIBS="$PKG_LIBS -Wl,-rpath,/usr/lib/x86_64-linux-gnu"
     fi
-fi
-
-# Fallback detection
-if test -z "$PKG_CPPFLAGS"; then
-    for prefix in /opt/homebrew /usr/local /opt/local /usr; do
+else
+    echo "pkg-config failed, trying manual detection..."
+    # Manual fallback
+    for prefix in /opt/homebrew /usr/local /usr; do
         if test -f "$prefix/include/flint/flint.h"; then
             echo "Found FLINT in $prefix"
             PKG_CPPFLAGS="-I$prefix/include -I./include -DHAVE_FLINT"
+            PKG_LIBS="-L$prefix/lib -lflint -lgmp -lmpfr"
             if test "$(uname)" = "Linux"; then
-                PKG_LIBS="-L$prefix/lib -lflint -lgmp -lmpfr -lm -Wl,-rpath,$prefix/lib"
-            else
-                PKG_LIBS="-L$prefix/lib -lflint -lgmp -lmpfr -lm"
+                PKG_LIBS="$PKG_LIBS -Wl,-rpath,$prefix/lib"
             fi
             break
         fi
@@ -55,5 +43,4 @@ OBJECTS = init.o r_interface.o builtin_functions.o
 PKG_CFLAGS = -DHAVE_VISIBILITY_ATTRIBUTE
 EOF
 
-echo "Configuration complete. Generated Makevars:"
-cat src/Makevars
+echo "Configuration complete"
