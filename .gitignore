@@ -18,3 +18,14 @@ man/*.Rd~
 inst/doc/
 vignettes/*.html
 vignettes/*.pdf
+# macOS system files
+.DS_Store
+
+# Editor temporary files
+*~
+
+# Configure artifacts
+config.log
+cleanup
+
+# Note: .Rbuildignore and .Rhistory should NOT be in .gitignore
