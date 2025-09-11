@@ -89,19 +89,13 @@ Once system dependencies are installed:
 # Install from GitHub
 if (!require(devtools)) install.packages("devtools")
 devtools::install_github("tranbaokhue/integralARB")
-
-# Load the package
-library(integralARB)
 ```
 
-## Quick Start
+## Examples
 
 ```r
+# Load the package
 library(integralARB)
-
-# Basic integration: ∫₀^(π/2) cos(x) dx = 1
-result <- integrate_rigorous("cos(x)", "0", "pi/2")
-print(result)
 
 # High precision integration
 result <- integrate_rigorous("sin(x)", "0", "pi", precision = 256)
@@ -129,47 +123,18 @@ print(result)
 - Complex expressions: `pi/2`, `ln(5)/3`, `sqrt(2)/4`
 
 ### Chain Rule Support
-First derivatives are supported for simple compositions:
-- `sin(2*x)`, `cos(3*x)`, `exp(-x)`
-- `log(2*x)`, `atan(5*x)`, `sqrt(3*x)`
+First derivatives are supported for simple compositions such as: `sin(2*x)`, `cos(3*x)`, `exp(-x)`, `log(2*x)`, `atan(5*x)`, `sqrt(3*x)`.
 
-## Examples
-
-```r
-# Trigonometric integrals
-integrate_rigorous("sin(2*x)", "0", "pi")        # = 0
-integrate_rigorous("cos(x)", "0", "pi/2")        # = 1
-
-# Polynomial integrals  
-integrate_rigorous("x^2", "0", "1")              # = 1/3
-integrate_rigorous("x^3", "0", "2")              # = 4
-
-# Exponential integrals
-integrate_rigorous("exp(-x)", "0", "1")          # = 1 - 1/e
-integrate_rigorous("exp(2*x)", "0", "ln(2)/2")   # = 1/2
-
-# Complex limits
-integrate_rigorous("1/(1+x^2)", "0", "sqrt(3)")  # = π/3
-integrate_rigorous("sqrt(x)", "0", "pi^2/4")     # = (2/3)*(π/2)^(3/2)
-```
-
-## Precision and Error Bounds
-
-The package provides mathematically rigorous error bounds:
-
-```r
-# Specify working precision (64-1024 bits)
-result <- integrate_rigorous("cos(x)", "0", "pi/2", precision = 128)
-
-```
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **FLINT not found**: Ensure FLINT is installed and in your system's library path. Windows support requires manual FLINT installation. See detailed Windows instructions above.
-2. **Compilation errors**: Check that development tools are installed (Xcode on macOS, build-essential on Linux, Rtools on Windows)
-3. **Windows DLL issues**: Make sure MSYS2 paths are in your system PATH
+2. **Compilation errors**: Check that development tools are installed (Xcode on macOS, build-essential on Linux, Rtools on Windows).
+3. **Windows DLL issues**: Make sure MSYS2 paths are in your system PATH.
+4. **Max depth**: Max depth reached. Make sure you increase the Maximum subdivision depth with increased precision.
+5. **Failed to parse**: The integrand needs to follow the format for it to be parsed correctly and send to ARB precisely. Moreover, the expression you want might not be supported yet, so please reach out to Khue to inquire about addiung your specific function as needed.
 
 ### Getting Help
 
@@ -188,5 +153,6 @@ R package version 0.1.0. https://github.com/tranbaokhue/integralARB
 
 ## References
 
-- Johansson, F. (2017). Arb: Efficient Arbitrary-Precision Midpoint-Radius Interval Arithmetic. IEEE Transactions on Computers.
-- FLINT Development Team. FLINT: Fast Library for Number Theory. https://flintlib.org/
+[1] F. Johansson, “Arb: Efficient Arbitrary-Precision Midpoint-Radius Interval Arithmetic,” IEEE Transactions on Computers, vol. 66, no. 8, pp. 1281–1292, Aug. 2017, doi: 10.1109/TC.2017.2690633.
+
+[2] FLINT Development Team. FLINT: Fast Library for Number Theory. https://flintlib.org/
