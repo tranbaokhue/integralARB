@@ -80,6 +80,7 @@ jobs:
           EOF
           gcc $(pkg-config --cflags --libs flint) test_acb.c -lm -o test_acb && echo "ACB symbols available" || echo "ACB symbols missing"
           rm -f test_acb.c test_acb
+
       - name: Check shared library dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
