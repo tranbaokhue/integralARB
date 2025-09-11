@@ -8,25 +8,16 @@ PKG_LIBS=""
 # Check for user-specified flags first (like flint package does)
 if test -n "$R_FLINT_CPPFLAGS"; then
     PKG_CPPFLAGS="$R_FLINT_CPPFLAGS -I./include -DHAVE_FLINT"
-fi
-
-if test -n "$R_FLINT_LIBS"; then
-    PKG_LIBS="$R_FLINT_LIBS"
+    PKG_LIBS="${R_FLINT_LIBS:-"-lflint -lmpfr -lgmp"}"
+    echo "Using user-specified FLINT configuration"
+elif command -v pkg-config >/dev/null 2>&1 && pkg-config --exists flint 2>/dev/null; then
+    echo "Found FLINT via pkg-config"
+    PKG_CPPFLAGS="`pkg-config --cflags flint` -I./include -DHAVE_FLINT"
+    PKG_LIBS="`pkg-config --libs flint`"
 else
+    echo "Warning: pkg-config failed. Using default FLINT linking."
+    PKG_CPPFLAGS="-I./include -DHAVE_FLINT"
     PKG_LIBS="-lflint -lmpfr -lgmp"
-fi
-
-# If user hasn't set flags, try pkg-config
-if test -z "$R_FLINT_CPPFLAGS"; then
-    if command -v pkg-config >/dev/null 2>&1 && pkg-config --exists flint 2>/dev/null; then
-        echo "Found FLINT via pkg-config"
-        PKG_CPPFLAGS="`pkg-config --cflags flint` -I./include -DHAVE_FLINT"
-        PKG_LIBS="`pkg-config --libs flint`"
-    else
-        echo "Warning: pkg-config failed. Using default FLINT linking."
-        PKG_CPPFLAGS="-I./include -DHAVE_FLINT"
-        PKG_LIBS="-lflint -lmpfr -lgmp"
-    fi
 fi
 
 cat > src/Makevars << EOF
