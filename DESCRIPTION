@@ -1,5 +1,5 @@
 Package: integralARB
-Title: Rigorous Numerical Integration using ARB Library
+Title: Arbitrary-precise Numerical Integration using ARB Library
 Version: 0.1.0
 Authors@R: c(
     person("Bao Khue", "Tran", email = "khuebtran03@gmail.com", role = c("cre", "aut")),
