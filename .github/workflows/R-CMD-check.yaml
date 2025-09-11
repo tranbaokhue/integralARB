@@ -39,7 +39,7 @@ jobs:
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-     a-packages: any::rcmdcheck
+   a-packages: any::rcmdcheck
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
