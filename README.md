@@ -97,13 +97,21 @@ devtools::install_github("tranbaokhue/integralARB")
 # Load the package
 library(integralARB)
 
-# High precision integration
-result <- integrate_rigorous("sin(x)", "0", "pi", precision = 256)
+result <- integrate_rigorous("2*sin(2*x) + 2*exp(x*3)", "-pi/6", "pi/3")
 print(result)
 
-# Complex expressions as limits: ∫₁^(ln(5)) 1/x dx = ln(ln(5))
-result <- integrate_rigorous("1/x", "1", "ln(5)")
-print(result)
+Rigorous Integration Result
+===========================
+Expression:  2*sin(2*x) + 2*exp(x*3) 
+Limits:     [ -pi/6 ,  pi/3 ]
+Precision:   128  bits
+
+Value:
+   16.2885420376190047314547538320757124056766981590 
+Rigorous error bound:
+  ± 2.72714689390770701848746876635560997253930409171e-36 
+Guaranteed accuracy: ≥ 35  decimal digits
+Evaluations: 10000  (estimated)
 ```
 
 ## Supported Mathematical Expressions
@@ -124,7 +132,6 @@ print(result)
 
 ### Chain Rule Support
 First derivatives are supported for simple compositions such as: `sin(2*x)`, `cos(3*x)`, `exp(-x)`, `log(2*x)`, `atan(5*x)`, `sqrt(3*x)`.
-
 
 ## Troubleshooting
 
