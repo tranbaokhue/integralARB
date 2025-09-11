@@ -46,15 +46,16 @@ jobs:
         run: |
           echo "=== Installing Linux Dependencies ==="
           sudo apt-get update -qq
-          sudo apt-get install -y libflint-dev libgmp-dev libmpfr-dev build-essential
+          # Install both dev and runtime libraries
+          sudo apt-get install -y libflint-dev libflint-2.8.4 libgmp-dev libgmp10 libmpfr-dev libmpfr6 build-essential
+          # Refresh library cache
+          sudo ldconfig
           echo "=== Verifying Installation ==="
-          dpkg -l | grep -E "(flint|gmp|mpfr)"
           pkg-config --exists flint && echo "FLINT pkg-config OK" || echo "FLINT pkg-config FAILED"
-          pkg-config --modversion flint || echo "No FLINT version"
-          pkg-config --cflags flint || echo "No FLINT cflags"
-          pkg-config --libs flint || echo "No FLINT libs"
-          find /usr -name "flint.h" 2>/dev/null | head -5
-          ldconfig -p | grep flint || echo "No FLINT in ld cache"
+          ldconfig -p | grep -E "(flint|gmp|mpfr)"
+          echo "=== FLINT Library Details ==="
+          pkg-config --modversion flint
+          pkg-config --libs flint
 
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'

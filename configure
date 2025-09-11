@@ -12,10 +12,15 @@ if command -v pkg-config >/dev/null 2>&1; then
         FLINT_LIBS="`pkg-config --libs flint`"
         PKG_CPPFLAGS="$FLINT_CFLAGS -I./include -DHAVE_FLINT"
 
-        # Add runtime library path for Linux
         if test "$(uname)" = "Linux"; then
-            LIBDIR="`pkg-config --variable=libdir flint`"
-            PKG_LIBS="$FLINT_LIBS -Wl,-rpath,$LIBDIR"
+            # On Linux, ensure runtime library paths are set
+            LIBDIRS="`pkg-config --libs-only-L flint | sed 's/-L//g'`"
+            RPATH_FLAGS=""
+            for dir in $LIBDIRS; do
+                RPATH_FLAGS="$RPATH_FLAGS -Wl,-rpath,$dir"
+            done
+            PKG_LIBS="$FLINT_LIBS $RPATH_FLAGS"
+            echo "Linux RPATH flags: $RPATH_FLAGS"
         else
             PKG_LIBS="$FLINT_LIBS"
         fi
@@ -28,7 +33,11 @@ if test -z "$PKG_CPPFLAGS"; then
         if test -f "$prefix/include/flint/flint.h"; then
             echo "Found FLINT in $prefix"
             PKG_CPPFLAGS="-I$prefix/include -I./include -DHAVE_FLINT"
-            PKG_LIBS="-L$prefix/lib -lflint -lgmp -lmpfr -lm"
+            if test "$(uname)" = "Linux"; then
+                PKG_LIBS="-L$prefix/lib -lflint -lgmp -lmpfr -lm -Wl,-rpath,$prefix/lib"
+            else
+                PKG_LIBS="-L$prefix/lib -lflint -lgmp -lmpfr -lm"
+            fi
             break
         fi
     done
@@ -46,4 +55,5 @@ OBJECTS = init.o r_interface.o builtin_functions.o
 PKG_CFLAGS = -DHAVE_VISIBILITY_ATTRIBUTE
 EOF
 
-echo "Configuration complete"
+echo "Configuration complete. Generated Makevars:"
+cat src/Makevars
