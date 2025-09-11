@@ -49,7 +49,7 @@ jobs:
           sudo apt-get install -y libflint-dev libgmp-dev libmpfr-dev build-essential
           echo "=== Verifying Installation ==="
           dpkg -l | grep -E "(flint|gmp|mpfr)"
-          pkg-config --exists flint && echo "✓ FLINT pkg-config OK" || echo "✗ FLINT pkg-config FAILED"
+          pkg-config --exists flint && echo "FLINT pkg-config OK" || echo "FLINT pkg-config FAILED"
           pkg-config --modversion flint || echo "No FLINT version"
           pkg-config --cflags flint || echo "No FLINT cflags"
           pkg-config --libs flint || echo "No FLINT libs"
@@ -68,13 +68,14 @@ jobs:
 
       - name: R environment information
         run: |
-          echo "=== R Environment ==="
+          R -e "
+          cat('=== R Environment ===\n')
           options(width = 100)
           sessionInfo()
           capabilities()
           Sys.info()
           .libPaths()
-        shell: Rscript {0}
+          "
 
       - name: Configure package
         run: |
@@ -113,10 +114,10 @@ jobs:
           cd src
           echo '#include "include/integralARB.h"' > test.c
           echo 'int main(){return 0;}' >> test.c
-          gcc -I. $(pkg-config --cflags flint) -c test.c -o test.o && echo "✓ Headers OK" || echo "✗ Header compilation failed"
+          gcc -I. $(pkg-config --cflags flint) -c test.c -o test.o && echo "Headers OK" || echo "Header compilation failed"
           rm -f test.c test.o
 
-      - name: Build package manually (for debugging)
+      - name: Build package manually
         run: |
           echo "=== Manual Build Test ==="
           R CMD build . --no-build-vignettes
@@ -131,16 +132,13 @@ jobs:
       - name: Test package loading
         run: |
           echo "=== Testing Package Load ==="
-          R -e "library(integralARB); cat('✓ Package loaded successfully\n')" || {
+          R -e "library(integralARB); cat('Package loaded successfully\n')" || {
             echo "=== Package Loading Failed ==="
             R -e "
             tryCatch({
               library(integralARB)
             }, error = function(e) {
               cat('Error:', conditionMessage(e), '\n')
-              if(file.exists('/usr/lib/R/library/integralARB/libs/integralARB.so')) {
-                system('ldd /usr/lib/R/library/integralARB/libs/integralARB.so')
-              }
             })
             "
             exit 1
@@ -149,7 +147,6 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
-          error-on: '"error"'
 
       - name: Show check results on failure
         if: failure()
@@ -157,5 +154,3 @@ jobs:
           echo "=== Check Results ==="
           find . -name "00check.log" -exec cat {} \;
           find . -name "00install.out" -exec cat {} \;
-          echo "=== Environment at Failure ==="
-          env | sort
