@@ -36,13 +36,21 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -qq
-          # Install available packages without specifying exact versions
-          sudo apt-get install -y libflint-dev libgmp-dev libmpfr-dev build-essential
+          # Install FLINT and all related packages
+          sudo apt-get install -y libflint-dev libflint-arb-dev libflint-arb2 libgmp-dev libmpfr-dev build-essential
           sudo ldconfig
-          # Verify installation
-          pkg-config --exists flint && echo "FLINT found" || echo "FLINT not found via pkg-config"
-          find /usr -name "libflint*" 2>/dev/null | head -3
-          ldconfig -p | grep flint || echo "No FLINT in library cache"
+
+          # Debug library contents
+          echo "=== Checking FLINT installation ==="
+          dpkg -L libflint-dev | grep -E "\.(so|a)$"
+          find /usr/lib -name "*flint*" -o -name "*arb*" 2>/dev/null
+
+          # Test symbol availability
+          echo "=== Testing symbols ==="
+          echo "int main(){return 0;}" > test.c
+          gcc -lflint -larb test.c -o test 2>&1 || echo "Link test failed"
+          nm -D /usr/lib/x86_64-linux-gnu/libflint.so.* | grep acb_pow || echo "acb_pow not found in libflint"
+          rm -f test.c test
 
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'
