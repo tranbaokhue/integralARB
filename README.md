@@ -18,7 +18,7 @@ Rigorous numerical integration for mathematical functions using ball arithmetic 
 
 ## System Requirements (following flint R package)
 
-This package requires a complete FLINT installation (>= 3.0.0) with ACB support.
+**IMPORTANT**: This package requires FLINT >= 3.0.0 (released 2023) which includes ARB library integration.
 
 ### Ubuntu 22.04+ / Debian 12+
 ```bash
