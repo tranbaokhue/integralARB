@@ -1,5 +1,6 @@
 # integralARB
 
+[![R-CMD-check](https://github.com/tranbaokhue/integralARB/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/tranbaokhue/integralARB/actions/workflows/R-CMD-check.yaml)
 Rigorous numerical integration for mathematical functions using ball arithmetic with mathematically guaranteed error bounds. Based on the FLINT/ARB library for arbitrary-precision computation.
 
 ## Table of Contents
