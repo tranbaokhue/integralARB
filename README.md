@@ -49,7 +49,18 @@ brew install flint gmp mpfr
 ```
 
 ### Windows
-Install [Rtools44+](https://cran.r-project.org/bin/windows/Rtools/) which includes FLINT headers and libraries.
+
+**Step 1: Install Rtools**
+1. Download [Rtools44 or later](https://cran.r-project.org/bin/windows/Rtools/) that matches your R version
+2. Run the installer with default settings
+3. Restart your R session
+
+**Step 2: Verify Rtools Installation**
+Open R and run:
+```r
+# Check if Rtools is properly installed
+Sys.which("make")
+# Should show a path like: C:\\rtools44\\usr\\bin\\make.exe
 
 ### Verify FLINT Installation
 After installation, check your FLINT version:
