@@ -1,7 +1,0 @@
-PKG_CPPFLAGS = -I../windows/include -I./include -DHAVE_FLINT
-PKG_LIBS = -L../windows/lib -lflint -lgmp -lmpfr -lm
-OBJECTS = init.o r_interface.o builtin_functions.o
-PKG_CFLAGS = -DHAVE_VISIBILITY_ATTRIBUTE
-
-# Windows-specific linking
-CXX_STD = CXX11
