@@ -2,29 +2,35 @@
 
 echo "Configuring for Windows..."
 
+# Follow flint package model: check user variables first, then use defaults
 PKG_CPPFLAGS=""
 PKG_LIBS=""
 
-# Check multiple Windows locations
-for prefix in "${RTOOLS40_HOME}/usr" "${R_TOOLS_SOFT}" "/mingw64" "/usr/local" "C:/msys64/mingw64" "C:/vcpkg/installed/x64-windows"; do
-    if [ -d "$prefix" ] && [ -f "$prefix/include/flint/flint.h" ]; then
-        echo "Found FLINT in $prefix"
-        PKG_CPPFLAGS="-I$prefix/include -I./include -DHAVE_FLINT"
-        PKG_LIBS="-L$prefix/lib -lflint -lgmp -lmpfr -lm"
-        break
-    fi
-done
+if test -n "$R_FLINT_CPPFLAGS"; then
+    PKG_CPPFLAGS="$R_FLINT_CPPFLAGS -I./include -DHAVE_FLINT"
+    PKG_LIBS="${R_FLINT_LIBS:-"-lflint -lmpfr -lgmp"}"
+    echo "Using user-specified FLINT configuration"
+else
+    # Check common Windows FLINT locations
+    for prefix in "${RTOOLS40_HOME}/usr" "${RTOOLS44_HOME}/usr" "${R_TOOLS_SOFT}" "/usr/local"; do
+        if test -d "$prefix" && test -f "$prefix/include/flint/flint.h"; then
+            echo "Found FLINT in $prefix"
+            PKG_CPPFLAGS="-I$prefix/include -I./include -DHAVE_FLINT"
+            PKG_LIBS="-L$prefix/lib -lflint -lmpfr -lgmp"
+            break
+        fi
+    done
 
-if [ -z "$PKG_CPPFLAGS" ]; then
-    echo "Error: FLINT not found on Windows"
-    echo "Please install FLINT via MSYS2:"
-    echo "  pacman -S mingw-w64-x86_64-flint"
-    echo "Or see README for alternative installation methods"
-    exit 1
+    # Default for Rtools44+
+    if test -z "$PKG_CPPFLAGS"; then
+        echo "Using Rtools default FLINT configuration"
+        PKG_CPPFLAGS="-I./include -DHAVE_FLINT"
+        PKG_LIBS="-lflint -lmpfr -lgmp"
+    fi
 fi
 
-# Create Makevars.win
-cat > src/Makevars.win << EOF
+# Create standard Makevars (not Makevars.win)
+cat > src/Makevars << EOF
 PKG_CPPFLAGS = $PKG_CPPFLAGS
 PKG_LIBS = $PKG_LIBS
 OBJECTS = init.o r_interface.o builtin_functions.o
@@ -32,5 +38,3 @@ PKG_CFLAGS = -DHAVE_VISIBILITY_ATTRIBUTE
 EOF
 
 echo "Windows configuration complete"
-echo "CPPFLAGS: $PKG_CPPFLAGS"
-echo "LIBS: $PKG_LIBS"
