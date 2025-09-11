@@ -10,9 +10,8 @@ if command -v pkg-config >/dev/null 2>&1 && pkg-config --exists flint 2>/dev/nul
     PKG_CPPFLAGS="`pkg-config --cflags flint` -I./include -DHAVE_FLINT"
 
     if test "$(uname)" = "Linux"; then
-        # On Linux, ACB symbols might be in separate ARB library
-        PKG_LIBS="`pkg-config --libs flint` -larb -Wl,-rpath,/usr/lib/x86_64-linux-gnu"
-        echo "Linux: Added -larb flag"
+        # On Linux, ensure proper linking order and add math library
+        PKG_LIBS="`pkg-config --libs flint` -lm -Wl,-rpath,/usr/lib/x86_64-linux-gnu"
     else
         PKG_LIBS="`pkg-config --libs flint`"
     fi
@@ -23,9 +22,10 @@ else
             echo "Found FLINT in $prefix"
             PKG_CPPFLAGS="-I$prefix/include -I./include -DHAVE_FLINT"
             if test "$(uname)" = "Linux"; then
-                PKG_LIBS="-L$prefix/lib -lflint -larb -lgmp -lmpfr -Wl,-rpath,$prefix/lib"
+                # Explicit library order for Linux
+                PKG_LIBS="-L$prefix/lib -lflint -lmpfr -lgmp -lm -Wl,-rpath,$prefix/lib"
             else
-                PKG_LIBS="-L$prefix/lib -lflint -lgmp -lmpfr"
+                PKG_LIBS="-L$prefix/lib -lflint -lgmp -lmpfr -lm"
             fi
             break
         fi
