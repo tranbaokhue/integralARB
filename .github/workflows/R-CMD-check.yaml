@@ -16,9 +16,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {os: macOS-latest,   r: 'release'}
-          - {os: ubuntu-latest,   r: 'devel'}
-          - {os: ubuntu-latest,   r: 'release'}
+          - {os: macOS-latest, r: 'release'}
+          - {os: ubuntu-latest, r: 'devel'}
+          - {os: ubuntu-latest, r: 'release'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -32,41 +32,25 @@ jobs:
           r-version: ${{ matrix.config.r }}
           use-public-rspm: true
 
-     - name: Install system dependencies (Linux)
+      - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -qq
-          # Install only available packages
           sudo apt-get install -y libflint-dev libgmp-dev libmpfr-dev build-essential
           sudo ldconfig
-
-          # Debug what's actually installed
-          echo "=== Available FLINT files ==="
+          echo "=== FLINT installation check ==="
           find /usr -name "*flint*" 2>/dev/null | head -10
-          echo "=== FLINT library contents ==="
           nm -D /usr/lib/x86_64-linux-gnu/libflint.so 2>/dev/null | grep acb_ | head -5 || echo "No ACB symbols found"
-          echo "=== Library versions ==="
-          dpkg -l | grep flint
 
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
           brew install flint gmp mpfr
 
-      - name: Configure package
-        run: |
-          chmod +x configure
-          ./configure
-
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: any::rcmdcheck
-          needs: check
-
       - name: Test FLINT ACB symbols (Linux)
         if: runner.os == 'Linux'
         run: |
-          echo "Testing if ACB symbols are available..."
+          echo "Testing ACB symbol availability..."
           cat > test_acb.c << 'EOF'
           #include <flint/flint.h>
           #include <flint/acb.h>
@@ -81,18 +65,16 @@ jobs:
           gcc $(pkg-config --cflags --libs flint) test_acb.c -lm -o test_acb && echo "ACB symbols available" || echo "ACB symbols missing"
           rm -f test_acb.c test_acb
 
-      - name: Check shared library dependencies (Linux)
-        if: runner.os == 'Linux'
+      - name: Configure package
         run: |
-          echo "Checking if we can build and link..."
-          cd src
-          # Simple test compilation
-          echo '#include <stdio.h>' > test.c
-          echo 'int main(){printf("test"); return 0;}' >> test.c
-          gcc $(pkg-config --cflags --libs flint || echo "-lflint -lgmp -lmpfr") test.c -o test && ./test && echo "Basic linking works"
-          rm -f test.c test
+          chmod +x configure
+          ./configure
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
 
       - uses: r-lib/actions/check-r-package@v2
         env:
-          # Set library path for runtime
           LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu:/usr/local/lib:${{ env.LD_LIBRARY_PATH }}
